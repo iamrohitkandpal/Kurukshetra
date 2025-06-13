@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV === 'production') {
-  require('./utils/demoData')();
+  require('./utils/demoData').createDemoData();
 }
 
 // Initialize databases
