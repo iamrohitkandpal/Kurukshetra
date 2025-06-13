@@ -90,7 +90,7 @@ app.get('/health', (req, res) => {
     status: 'UP',
     timestamp: new Date(),
     environment: process.env.NODE_ENV,
-    version: require('../package.json').version,
+    version: require(path.join(__dirname, 'package.json')).version,
     nodejs: process.version,
     uptime: process.uptime()
   });
