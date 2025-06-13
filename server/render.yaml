@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: kurukshetra-server
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 16.x
+      - key: NODE_ENV
+        value: production

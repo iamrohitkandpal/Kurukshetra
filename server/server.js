@@ -17,14 +17,18 @@ const helmet = require('helmet');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-if (process.env.NODE_ENV === 'production') {
-  require('./utils/demoData').createDemoData();
-}
-
 // Initialize databases
 initDatabase();
 if (checkEnv('ENABLE_NOSQL_INJECTION')) {
   setupMongoDb();
+}
+
+// Initialize demo data in production
+if (process.env.NODE_ENV === 'production') {
+  const { createDemoData } = require('./utils/demoData');
+  createDemoData()
+    .then(() => console.log('Demo data initialized'))
+    .catch(err => console.error('Error initializing demo data:', err));
 }
 
 // Middleware setup
