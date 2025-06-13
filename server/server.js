@@ -7,11 +7,12 @@ const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const SqliteStore = require('connect-sqlite3')(session);
-const serveIndex = require('serve-index'); // A05: Directory listing
+const serveIndex = require('serve-index');
 const { initDatabase } = require('./config/db');
 const { setupMongoDb } = require('./config/mongodb');
 const { checkEnv } = require('./utils/helpers');
 const helmet = require('helmet');
+const fs = require('fs'); // Added missing fs import
 
 // Initialize the app
 const app = express();
@@ -23,13 +24,17 @@ if (checkEnv('ENABLE_NOSQL_INJECTION')) {
   setupMongoDb();
 }
 
-// Initialize demo data in production
-if (process.env.NODE_ENV === 'production') {
-  const { createDemoData } = require('./utils/demoData');
-  createDemoData()
-    .then(() => console.log('Demo data initialized'))
-    .catch(err => console.error('Error initializing demo data:', err));
-}
+// Initialize demo data
+const { createDemoData } = require('./utils/demoData');
+createDemoData()
+  .then(() => console.log('Demo data initialized'))
+  .catch(err => console.error('Error initializing demo data:', err));
+
+// A05: Intentionally misconfigured security headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+  xssFilter: false
+}));
 
 // Middleware setup
 // A05: CORS misconfiguration if enabled
@@ -43,8 +48,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET || 'insecure_cookie'));
 app.use(morgan('dev'));
+app.use(fileUpload()); // Added missing fileUpload middleware
 
-// A01: Broken Access Control - Intentionally missing CSRF protection
+// A01: Broken Access Control - Insecure session setup
 app.use(session({
   store: new SqliteStore({
     db: 'sessions.db',
@@ -54,40 +60,19 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    secure: false, // A02: Cookies not secure
-    httpOnly: false // A02: Cookies accessible via JS
+    secure: false,
+    httpOnly: false
   }
 }));
 
-// A05: Security Misconfiguration - Revealing tech stack info
-if (checkEnv('ENABLE_SECURITY_MISCONFIG')) {
-  app.use((req, res, next) => {
-    res.setHeader('X-Powered-By', 'Express 4.18.2');
-    res.setHeader('Server', 'Node.js ' + process.version);
-    next();
-  });
-}
-
-// A06: Vulnerable component - Intentionally vulnerable file upload
-const uploadLimitMB = parseInt(process.env.MAX_FILE_SIZE || '50');
-app.use(fileUpload({
-  createParentPath: true,
-  limits: { fileSize: uploadLimitMB * 1024 * 1024 }, // Default 50MB limit
-  abortOnLimit: false, // A04: Insecure Design - No upload limit enforcement
-  debug: checkEnv('ENABLE_DEBUG_ENDPOINTS') // A09: Exposing debug info
-}));
-
-// Create uploads directory if it doesn't exist
-const fs = require('fs');
-const uploadsDir = path.join(__dirname, process.env.UPLOAD_DIR || './uploads');
+// Setup upload directories
+const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // A05: Directory listing vulnerability
-if (checkEnv('ENABLE_DIRECTORY_LISTING')) {
-  app.use('/uploads', express.static(uploadsDir), serveIndex(uploadsDir, { 'icons': true }));
-}
+app.use('/uploads', express.static(uploadsDir), serveIndex(uploadsDir, { 'icons': true }));
 
 // Log Injection vulnerability setup - A09
 if (checkEnv('ENABLE_LOG_INJECTION')) {
@@ -149,39 +134,38 @@ app.use(require('body-parser').raw({ type: '*/*' })); // Known vulnerable versio
 // A09: Security Logging and Monitoring Failures - No monitoring or request filtering
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
+  // Create a public directory for static files
+  const publicPath = path.join(__dirname, 'public');
+  if (!fs.existsSync(publicPath)) {
+    fs.mkdirSync(publicPath, { recursive: true });
+  }
+
+  // Serve static files from public directory
+  app.use(express.static(publicPath));
+  
+  // Create uploads directory if it doesn't exist
+  const uploadsPath = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+
+  // Serve uploaded files
+  app.use('/uploads', express.static(uploadsPath));
+
+  // Handle client routing - send all requests to index.html
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build/index.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
   });
 }
 
-// A09: No error handling middleware (or very poor implementation)
-if (checkEnv('ENABLE_DEBUG_ENDPOINTS')) {
-  app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-      error: err.message,
-      stack: err.stack,
-      details: err
-    });
+// A09: Insufficient error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: err.message,
+    stack: err.stack // A09: Exposing stack traces
   });
-} else {
-  app.use((err, req, res, next) => {
-    res.status(500).json({ error: 'Server error' });
-  });
-}
-
-// A05: Intentionally misconfigured security headers
-app.use(helmet({
-  contentSecurityPolicy: false,
-  xssFilter: false
-}));
-
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'client/public/uploads')));
-
-// Serve static images
-app.use('/images', express.static(path.join(__dirname, 'client/public/images')));
+});  // Fixed missing closing parenthesis
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

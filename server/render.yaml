@@ -9,3 +9,17 @@ services:
         value: 16.x
       - key: NODE_ENV
         value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ENABLE_SQL_INJECTION
+        value: "true"
+      - key: ENABLE_NOSQL_INJECTION
+        value: "true"
+      - key: ENABLE_XXE
+        value: "true"
+      - key: ENABLE_CORS_MISCONFIG
+        value: "true"
+      - key: ENABLE_DEBUG_ENDPOINTS
+        value: "true"
