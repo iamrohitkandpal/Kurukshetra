@@ -151,11 +151,6 @@ if (process.env.NODE_ENV === 'production') {
 
   // Serve uploaded files
   app.use('/uploads', express.static(uploadsPath));
-
-  // Handle client routing - send all requests to index.html
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html'));
-  });
 }
 
 // A09: Insufficient error handling
