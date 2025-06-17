@@ -10,6 +10,7 @@ const SqliteStore = require('connect-sqlite3')(session);
 const serveIndex = require('serve-index');
 const helmet = require('helmet');
 const fs = require('fs');
+const db = require('./config/db');
 
 // Helpers and database setup
 const { initDatabase } = require('./config/db');
@@ -35,6 +36,7 @@ app.use(helmet({
 }));
 
 // Middleware setup
+// A05: CORS misconfiguration if enabled
 if (checkEnv('ENABLE_CORS_MISCONFIG')) {
   app.use(cors({ origin: '*', credentials: true }));
 } else {
@@ -63,10 +65,14 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(uploadsDir), serveIndex(uploadsDir, { icons: true }));
 
-// Log injection vulnerability
+// A05: Directory listing vulnerability
+app.use('/uploads', express.static(uploadsDir), serveIndex(uploadsDir, { 'icons': true }));
+
+// Log Injection vulnerability setup - A09
 if (checkEnv('ENABLE_LOG_INJECTION')) {
   morgan.token('user-input', (req) => {
-    return req.body?.username || 'anonymous';
+    // Intentionally vulnerable log function that doesn't sanitize user input
+    return req.body && req.body.username ? req.body.username : 'anonymous';
   });
   app.use(morgan(':method :url :status - User: :user-input'));
 }
@@ -114,10 +120,11 @@ app.use('/api/backup', require('./routes/backup'));
 app.use('/api/updates', require('./routes/updates'));
 app.use('/api/import', require('./routes/import'));
 
-// Keep body-parser vulnerability
-app.use(require('body-parser').raw({ type: '*/*' }));
+// A06: Add vulnerable dependencies
+app.use(require('body-parser').raw({ type: '*/*' })); // Known vulnerable version
 
-// Serve static in production
+// A09: Security Logging and Monitoring Failures - No monitoring or request filtering
+// Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
   const publicPath = path.join(__dirname, 'public');
   if (!fs.existsSync(publicPath)) {
@@ -128,7 +135,17 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/uploads', express.static(uploadsDir));
 }
 
-// Error handler - shows stack traces (A09)
+// Test database connection
+db.raw('SELECT 1')
+  .then(() => {
+    console.log('Database connected successfully');
+  })
+  .catch((err) => {
+    console.error('Database connection error:', err);
+    process.exit(1);
+  });
+
+// A09: Insufficient error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
@@ -141,4 +158,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Debug mode: ${process.env.NODE_ENV !== 'production' ? 'enabled' : 'disabled'}`);
+  console.log(`Database status: ${db ? 'Connected' : 'Disconnected'}`);
 });

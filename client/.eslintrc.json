@@ -20,7 +20,8 @@
   ],
   "rules": {
     "react/react-in-jsx-scope": "off",
-    "no-duplicate-exports": "error"
+    "no-duplicate-exports": "off",
+    "react/prop-types": "warn"
   },
   "settings": {
     "react": {

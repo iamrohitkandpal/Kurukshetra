@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import PropTypes from 'prop-types';
 
-const TwoFactorSetup = ({ mfaEnabled }) => {
+const TwoFactorSetup = ({ mfaEnabled = false }) => {
   const [setupMode, setSetupMode] = useState(false);
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
@@ -38,6 +39,12 @@ const TwoFactorSetup = ({ mfaEnabled }) => {
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to disable 2FA');
     }
+  };
+
+  // A07:2021 - Identification and Authentication Failures
+  // Intentionally vulnerable: No proper validation
+  const toggleMFA = () => {
+    console.log('MFA toggled without proper validation');
   };
 
   return (
@@ -90,6 +97,10 @@ const TwoFactorSetup = ({ mfaEnabled }) => {
       </div>
     </div>
   );
+};
+
+TwoFactorSetup.propTypes = {
+  mfaEnabled: PropTypes.bool
 };
 
 export default TwoFactorSetup;
