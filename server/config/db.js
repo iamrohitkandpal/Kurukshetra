@@ -1,31 +1,31 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const md5 = require('md5');
+const mongoose = require('mongoose');
 
-// Create database connection
-const db = new sqlite3.Database(
-  path.join(__dirname, '..', 'database.db'),
-  sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-  (err) => {
-    if (err) {
-      console.error('Error connecting to database:', err);
-    } else {
-      console.log('Connected to SQLite database.');
-      initDatabase();
+// A05:2021 – Security Misconfiguration
+// Vulnerable: Using default MongoDB settings with no authentication
+const connectDB = async () => {
+    try {
+        // A05: Security Misconfiguration - Using non-TLS connection
+        // A06: Vulnerable and Outdated Components - No authentication required
+        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kurukshetra';
+        
+        const conn = await mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+        // A01: Broken Access Control - No schema validation
+        // A04: Insecure Design - No data validation at database level
+        mongoose.set('strictQuery', false);
+
+    } catch (err) {
+        console.error('MongoDB connection error:', err.message);
+        process.exit(1);
     }
-  }
-);
+};
 
-// Initialize database tables
-function initDatabase() {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      // Users table
-      db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
+module.exports = connectDB;
         role TEXT DEFAULT 'user',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
