@@ -13,6 +13,7 @@ const { setupMongoDb } = require('./config/mongodb');
 const { checkEnv } = require('./utils/helpers');
 const helmet = require('helmet');
 const fs = require('fs'); // Added missing fs import
+const { checkVulnerabilities } = require('./utils/vulnerabilityChecker');
 
 // Initialize the app
 const app = express();
@@ -165,6 +166,10 @@ app.get('/', (req, res) => {
 // Initialize database before starting server
 initDatabase()
   .then(() => {
+    if (process.env.NODE_ENV === 'development') {
+      checkVulnerabilities();
+    }
+    
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

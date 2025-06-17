@@ -1,21 +1,21 @@
-const sqlite3 = require('sqlite3').verbose();
+const knex = require('knex');
 const path = require('path');
 
-// Create database connection
-const db = new sqlite3.Database(path.join(__dirname, '../data/kurukshetra.db'), (err) => {
-  if (err) {
-    console.error('Error connecting to database:', err);
-  } else {
-    console.log('Connected to SQLite database');
-    initializeDatabase();
+const db = knex({
+  client: 'sqlite3',
+  connection: {
+    filename: path.join(__dirname, '../database/kurukshetra.sqlite')
+  },
+  useNullAsDefault: true,
+  pool: {
+    afterCreate: (conn, cb) => {
+      // Enable foreign key constraints
+      conn.run('PRAGMA foreign_keys = ON', cb);
+    }
   }
 });
 
-// Initialize database schema
-function initializeDatabase() {
-  db.serialize(() => {
-    // Users table
-    db.run(`CREATE TABLE IF NOT EXISTS users (
+module.exports = db;
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username VARCHAR(50) NOT NULL UNIQUE,
       email VARCHAR(100) NOT NULL UNIQUE,
