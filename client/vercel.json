@@ -10,24 +10,18 @@
   "routes": [
     {
       "src": "/static/(.*)",
-      "headers": { "cache-control": "s-maxage=31536000, immutable" },
       "dest": "/static/$1"
     },
     {
-      "src": "/images/(.*)",
-      "headers": { "cache-control": "s-maxage=31536000" },
-      "dest": "/images/$1"
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
     },
     {
       "src": "/manifest.json",
       "dest": "/manifest.json"
     },
     {
-      "src": "/favicon.ico",
-      "dest": "/images/logo/favicon.ico"
-    },
-    {
-      "src": "/(.*)",
+      "src": "/.*",
       "dest": "/index.html"
     }
   ]
