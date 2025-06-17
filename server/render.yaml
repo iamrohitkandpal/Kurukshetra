@@ -1,19 +1,19 @@
 services:
   - type: web
-    name: kurukshetra-api
+    name: kurukshetra-server
     env: node
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: PORT
         value: 5000
-      - key: FRONTEND_URL
-        value: https://kurukshetra.vercel.app
-      - key: MONGO_URI
-        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://kurukshetra-ruby.vercel.app
+      - key: UPLOAD_DIR
+        value: uploads
       - key: JWT_SECRET
-        sync: false
-      - key: SESSION_SECRET
-        sync: false
+        fromGroup: kurukshetra-secrets
+      - key: MONGODB_URI
+        fromGroup: kurukshetra-secrets

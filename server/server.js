@@ -11,7 +11,6 @@ const session = require('express-session');
 const SqliteStore = require('connect-sqlite3')(session);
 const serveIndex = require('serve-index');
 const { initDatabase } = require('./config/db');
-const { setupMongoDb } = require('./config/mongodb');
 const { checkEnv } = require('./utils/helpers');
 const helmet = require('helmet');
 const fs = require('fs'); // Added missing fs import
@@ -45,7 +44,9 @@ if (checkEnv('ENABLE_CORS_MISCONFIG')) {
 } else {
   app.use(cors({
     origin: process.env.CLIENT_URL || 'https://kurukshetra-ruby.vercel.app',
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
   }));
 }
 
