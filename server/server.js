@@ -157,19 +157,19 @@ app.use((err, req, res, next) => {
   });
 });  // Fixed missing closing parenthesis
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Debug mode: ${process.env.NODE_ENV !== 'production' ? 'enabled' : 'disabled'}`);
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'Kurukshetra Backend API is running' });
 });
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: err.message,
-    stack: err.stack // A09: Exposing stack traces
-  });
-});  // Fixed missing closing parenthesis
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Debug mode: ${process.env.NODE_ENV !== 'production' ? 'enabled' : 'disabled'}`);
-});
+// Initialize database before starting server
+initDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
