@@ -46,6 +46,37 @@ const Login = () => {
     }
   };
 
+  // A07:2021 - Identification and Authentication Failures
+  // Vulnerable function - No rate limiting, weak password policy
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // A03:2021 - Injection Vulnerability
+      // Direct string interpolation leading to SQL injection
+      const response = await axios.post('/api/auth/login', 
+        `username=${formData.username}&password=${formData.password}`,
+        {headers: {'Content-Type': 'application/x-www-form-urlencoded'}}
+      );
+
+      // A02:2021 - Cryptographic Failures
+      // Insecure token storage in localStorage
+      localStorage.setItem('token', response.data.token);
+      setToken(response.data.token);
+      
+      // A07:2021 - Client-side user role parsing
+      const payload = JSON.parse(atob(response.data.token.split('.')[1]));
+      setUser({
+        userId: payload.id,
+        username: payload.username,
+        role: payload.role
+      });
+
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Invalid credentials');
+    }
+  };
+
   return (
     <div className="row">
       <div className="col-md-6 offset-md-3">

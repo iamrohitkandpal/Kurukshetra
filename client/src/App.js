@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
+import './styles/theme.css';
 
 // Components
 import Navbar from './components/layout/Navbar';
@@ -21,9 +22,20 @@ import PasswordReset from './components/auth/PasswordReset'; // Import the Passw
 // Context
 import AuthContext from './context/AuthContext';
 
-// Set default axios baseURL
+// Update axios config
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 axios.defaults.withCredentials = true;
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+axios.defaults.timeout = 10000;
+
+// Add error handling for axios
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 function App() {
   const [user, setUser] = useState(null);
