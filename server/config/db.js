@@ -1,79 +1,79 @@
-const mongoose = require('mongoose');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-// A05:2021 – Security Misconfiguration
-// Vulnerable: Using default MongoDB settings with no authentication
-const connectDB = async () => {
-    try {
-        // A05: Security Misconfiguration - Using non-TLS connection
-        // A06: Vulnerable and Outdated Components - No authentication required
-        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kurukshetra';
-        
-        const conn = await mongoose.connect(mongoURI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+// Create database connection
+const db = new sqlite3.Database(path.join(__dirname, '../data/kurukshetra.db'), (err) => {
+  if (err) {
+    console.error('Error connecting to database:', err);
+  } else {
+    console.log('Connected to SQLite database');
+    initializeDatabase();
+  }
+});
 
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+// Initialize database schema
+function initializeDatabase() {
+  db.serialize(() => {
+    // Users table
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username VARCHAR(50) NOT NULL UNIQUE,
+      email VARCHAR(100) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      role VARCHAR(10) DEFAULT 'user',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-        // A01: Broken Access Control - No schema validation
-        // A04: Insecure Design - No data validation at database level
-        mongoose.set('strictQuery', false);
+    // Products table
+    db.run(`CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name VARCHAR(100) NOT NULL,
+      description TEXT,
+      price DECIMAL(10,2) NOT NULL,
+      category VARCHAR(50),
+      stock INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-    } catch (err) {
-        console.error('MongoDB connection error:', err.message);
-        process.exit(1);
-    }
-};
+    // Files table
+    db.run(`CREATE TABLE IF NOT EXISTS files (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      filename VARCHAR(255) NOT NULL,
+      original_name VARCHAR(255) NOT NULL,
+      mime_type VARCHAR(100),
+      size INTEGER,
+      uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
 
-module.exports = connectDB;
-        role TEXT DEFAULT 'user',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
+    // Feedback table
+    db.run(`CREATE TABLE IF NOT EXISTS feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      content TEXT NOT NULL,
+      rating INTEGER CHECK(rating BETWEEN 1 AND 5),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
 
-      // Products table  
-      db.run(`CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT,
-        price REAL NOT NULL,
-        image TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
+    // Progress table
+    db.run(`CREATE TABLE IF NOT EXISTS progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      category VARCHAR(50) NOT NULL,
+      vulnerability_name VARCHAR(100) NOT NULL,
+      completed BOOLEAN DEFAULT 0,
+      completed_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
 
-      // Feedback table
-      db.run(`CREATE TABLE IF NOT EXISTS feedback (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        message TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )`);
-
-      // Files table
-      db.run(`CREATE TABLE IF NOT EXISTS files (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        filepath TEXT NOT NULL,
-        uploaded_by INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (uploaded_by) REFERENCES users(id)
-      )`, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+    console.log('Database schema initialized');
   });
 }
 
-module.exports = { db, initDatabase };
-}
-
-// Insert initial demo data (admin user, sample products)
-function insertInitialData() {
-  db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, row) => {
-    if (err) {
-      console.error('Error querying users:', err.message);
-    } else if (!row) {
+module.exports = db;
       // Insert admin user with MD5 password (vulnerability: A02)
       db.run(
         'INSERT INTO users (username, email, password, role, api_key) VALUES (?, ?, ?, ?, ?)',
