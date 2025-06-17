@@ -9,25 +9,33 @@
       }
     }
   ],
+  "buildCommand": "cd client && npm install && npm run build",
   "routes": [
+    {
+      "src": "/static/(.*)",
+      "headers": {
+        "cache-control": "s-maxage=31536000, immutable"
+      },
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/images/(.*)",
+      "headers": {
+        "cache-control": "s-maxage=31536000"
+      },
+      "dest": "/images/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/images/logo/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
+    },
     {
       "src": "/(.*)",
       "dest": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        }
-      ]
     }
   ]
 }

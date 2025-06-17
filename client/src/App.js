@@ -22,17 +22,21 @@ import PasswordReset from './components/auth/PasswordReset'; // Import the Passw
 // Context
 import AuthContext from './context/AuthContext';
 
-// Update axios config
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Update axios config with proper error handling
+axios.defaults.baseURL = process.env.REACT_APP_API_URL;
 axios.defaults.withCredentials = true;
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.defaults.timeout = 10000;
 
-// Add error handling for axios
+// Add better error handling for axios
 axios.interceptors.response.use(
   response => response,
   error => {
-    console.error('API Error:', error);
+    if (error.response?.status === 401) {
+      // Clear token on auth error
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
