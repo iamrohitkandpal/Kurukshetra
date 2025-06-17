@@ -3,24 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 
 const Navbar = () => {
-  const { user, setUser, setToken } = useContext(AuthContext);
+  const { user, setToken, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Call logout endpoint
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    })
-      .then(() => {
-        // Clear auth state
-        setUser(null);
-        setToken(null);
-        navigate('/');
-      })
-      .catch(error => {
-        console.error('Logout error:', error);
-      });
+    setToken(null);
+    setUser(null);
+    navigate('/login');
   };
 
   const guestLinks = (
@@ -39,47 +28,58 @@ const Navbar = () => {
       <li className="nav-item">
         <Link className="nav-link" to="/dashboard">Dashboard</Link>
       </li>
-      <li className="nav-item">
-        <Link className="nav-link" to="/products">Products</Link>
-      </li>
-      <li className="nav-item">
-        <Link className="nav-link" to="/upload">Upload</Link>
-      </li>
-      <li className="nav-item">
-        <Link className="nav-link" to="/files">My Files</Link>
-      </li>
-      <li className="nav-item">
-        <Link className="nav-link" to="/profile">Profile</Link>
-      </li>
-      {user && user.role === 'admin' && (
+      {user?.role === 'admin' && (
         <li className="nav-item">
-          <Link className="nav-link" to="/admin">Admin Panel</Link>
+          <Link className="nav-link" to="/admin">Admin</Link>
         </li>
       )}
       <li className="nav-item">
-        <a href="#!" className="nav-link" onClick={handleLogout}>Logout</a>
+        <Link className="nav-link" to="/profile">Profile</Link>
+      </li>
+      <li className="nav-item">
+        <button onClick={handleLogout} className="nav-link btn btn-link">
+          Logout
+        </button>
       </li>
     </>
   );
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
       <div className="container">
-        <Link className="navbar-brand fw-bold" to="/">
+        <Link className="navbar-brand" to="/">
           Kurukshetra
         </Link>
-        <button 
-          className="navbar-toggler" 
-          type="button" 
-          data-bs-toggle="collapse" 
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
           data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
         >
           <span className="navbar-toggler-icon"></span>
         </button>
         <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ms-auto">
+          <ul className="navbar-nav me-auto">
             <li className="nav-item">
-              <Link className="nav-link" to="/">Home</Link>
+              <Link className="nav-link" to="/products">Products</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/feedback">Feedback</Link>
+            </li>
+          </ul>
+          <ul className="navbar-nav">
+            {user ? authLinks : guestLinks}
+          </ul>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
             </li>
             <li className="nav-item">
               <Link className="nav-link" to="/products">Products</Link>
