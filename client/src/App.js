@@ -23,10 +23,24 @@ import PasswordReset from './components/auth/PasswordReset'; // Import the Passw
 import AuthContext from './context/AuthContext';
 
 // Update axios config with proper error handling
-axios.defaults.baseURL = process.env.REACT_APP_API_URL;
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://kurukshetra-server.onrender.com';
 axios.defaults.withCredentials = true;
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.defaults.timeout = 10000;
+
+// Add request interceptor for auth header
+axios.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['x-auth-token'] = token;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
 
 // Add better error handling for axios
 axios.interceptors.response.use(
@@ -95,11 +109,11 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ user, setUser, token, setToken }}>
-      <Router>
+      <Router basename={process.env.PUBLIC_URL}>
         <Navbar />
         <div className="container mt-4">
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<Landing />} exact />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />

@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const sqlite3 = require('sqlite3');
+const { open } = require('sqlite');
 const morgan = require('morgan');
 const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
@@ -13,14 +15,10 @@ const { setupMongoDb } = require('./config/mongodb');
 const { checkEnv } = require('./utils/helpers');
 const helmet = require('helmet');
 const fs = require('fs'); // Added missing fs import
-const { checkVulnerabilities } = require('./utils/vulnerabilityChecker');
 
 // Initialize the app
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Fix package.json path
-const version = require('./package.json').version;
 
 // Initialize databases
 initDatabase();
@@ -46,11 +44,7 @@ if (checkEnv('ENABLE_CORS_MISCONFIG')) {
   app.use(cors({ origin: '*', credentials: true }));
 } else {
   app.use(cors({
-    origin: [
-      'http://localhost:3000',
-      'https://kurukshetra-app.vercel.app', // Add your Vercel domain
-      process.env.FRONTEND_URL
-    ].filter(Boolean),
+    origin: process.env.CLIENT_URL || 'https://kurukshetra-ruby.vercel.app',
     credentials: true
   }));
 }
@@ -98,10 +92,10 @@ if (checkEnv('ENABLE_LOG_INJECTION')) {
 // Health check endpoint - A05: Information disclosure
 app.get('/health', (req, res) => {
   res.json({
-    status: 'Healthy',
+    status: 'UP',
     timestamp: new Date(),
     environment: process.env.NODE_ENV,
-    version: 1.0,
+    version: require(path.join(__dirname, 'package.json')).version,
     nodejs: process.version,
     uptime: process.uptime()
   });
@@ -145,8 +139,23 @@ app.use(require('body-parser').raw({ type: '*/*' })); // Known vulnerable versio
 // A09: Security Logging and Monitoring Failures - No monitoring or request filtering
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('public'));
-  app.use('/uploads', express.static('uploads'));
+  // Create a public directory for static files
+  const publicPath = path.join(__dirname, 'public');
+  if (!fs.existsSync(publicPath)) {
+    fs.mkdirSync(publicPath, { recursive: true });
+  }
+
+  // Serve static files from public directory
+  app.use(express.static(publicPath));
+  
+  // Create uploads directory if it doesn't exist
+  const uploadsPath = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+
+  // Serve uploaded files
+  app.use('/uploads', express.static(uploadsPath));
 }
 
 // A09: Insufficient error handling
@@ -158,23 +167,30 @@ app.use((err, req, res, next) => {
   });
 });  // Fixed missing closing parenthesis
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({ message: 'Kurukshetra Backend API is running' });
-});
+// Database setup
+const dbPath = process.env.NODE_ENV === 'production' 
+  ? '/opt/data/kurukshetra.db'
+  : path.join(__dirname, 'kurukshetra.db');
 
-// Initialize database before starting server
-initDatabase()
-  .then(() => {
-    if (process.env.NODE_ENV === 'development') {
-      checkVulnerabilities();
-    }
-    
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error('Failed to initialize database:', err);
-    process.exit(1);
+let db;
+(async () => {
+  db = await open({
+    filename: dbPath,
+    driver: sqlite3.Database
   });
+  
+  // Intentionally vulnerable: No input validation or sanitization
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      password TEXT,
+      role TEXT DEFAULT 'user'
+    );
+  `);
+})();
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Debug mode: ${process.env.NODE_ENV !== 'production' ? 'enabled' : 'disabled'}`);
+});
