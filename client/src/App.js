@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import './styles/theme.css';
 
 // Components
 import Navbar from './components/layout/Navbar';
@@ -22,38 +21,9 @@ import PasswordReset from './components/auth/PasswordReset'; // Import the Passw
 // Context
 import AuthContext from './context/AuthContext';
 
-// Update axios config with proper error handling
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://kurukshetra-server.onrender.com';
+// Set default axios baseURL
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 axios.defaults.withCredentials = true;
-axios.defaults.headers.common['Content-Type'] = 'application/json';
-axios.defaults.timeout = 10000;
-
-// Add request interceptor for auth header
-axios.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['x-auth-token'] = token;
-    }
-    return config;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
-
-// Add better error handling for axios
-axios.interceptors.response.use(
-  response => response,
-  error => {
-    if (error.response?.status === 401) {
-      // Clear token on auth error
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
 
 function App() {
   const [user, setUser] = useState(null);
@@ -109,11 +79,11 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ user, setUser, token, setToken }}>
-      <Router basename={process.env.PUBLIC_URL}>
+      <Router>
         <Navbar />
         <div className="container mt-4">
           <Routes>
-            <Route path="/" element={<Landing />} exact />
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />

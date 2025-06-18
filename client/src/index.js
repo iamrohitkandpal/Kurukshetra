@@ -4,9 +4,8 @@ import './index.css';
 import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-
-// A06:2021 - Vulnerable and Outdated Components
-// Intentionally using unsafe rendering
 root.render(
-  <App />
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 );

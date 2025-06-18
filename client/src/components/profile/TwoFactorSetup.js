@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 
@@ -9,6 +9,20 @@ const TwoFactorSetup = ({ mfaEnabled = false }) => {
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [enabled, setEnabled] = useState(false);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    const getMFAStatus = async () => {
+      try {
+        const res = await axios.get('/api/profile/mfa-status');
+        setEnabled(res.data.enabled);
+      } catch (err) {
+        setMessage('Error fetching MFA status');
+      }
+    };
+    getMFAStatus();
+  }, []);
 
   const initiateSetup = async () => {
     try {
@@ -41,6 +55,19 @@ const TwoFactorSetup = ({ mfaEnabled = false }) => {
     }
   };
 
+  const handleMFAToggle = async () => {
+    try {
+      const res = await axios.post('/api/profile/mfa-toggle');
+      setEnabled(res.data.enabled);
+      if (res.data.qrCode) {
+        setQrCode(res.data.qrCode);
+      }
+      setMessage(`2FA ${enabled ? 'disabled' : 'enabled'} successfully`);
+    } catch (err) {
+      setMessage('Error toggling 2FA');
+    }
+  };
+
   // A07:2021 - Identification and Authentication Failures
   // Intentionally vulnerable: No proper validation
   const toggleMFA = () => {
@@ -55,6 +82,7 @@ const TwoFactorSetup = ({ mfaEnabled = false }) => {
       <div className="card-body">
         {error && <div className="alert alert-danger">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
+        {message && <div className="alert alert-info mt-3">{message}</div>}
 
         {!mfaEnabled && !setupMode && (
           <button className="btn btn-primary" onClick={initiateSetup}>
