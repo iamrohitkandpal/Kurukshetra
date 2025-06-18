@@ -8,8 +8,8 @@ services:
       - key: NODE_ENV
         value: production
       - key: DB_PATH
-        value: /opt/data/kurukshetra.sqlite
+        value: /data/kurukshetra.sqlite
     disk:
       name: sqlite-data
-      mountPath: /opt/data
+      mountPath: /data
       sizeGB: 1
