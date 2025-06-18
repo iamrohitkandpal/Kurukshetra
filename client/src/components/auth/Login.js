@@ -92,7 +92,7 @@ const Login = () => {
             </form>
             <div className="mt-3 text-center">
               <p>
-                Don't have an account? <Link to="/register">Register</Link>
+                Don&apos;t have an account? <Link to="/register">Register</Link>
               </p>
               <p>
                 <Link to="/reset-password">Forgot password?</Link>

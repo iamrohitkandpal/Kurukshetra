@@ -55,25 +55,6 @@ const TwoFactorSetup = ({ mfaEnabled = false }) => {
     }
   };
 
-  const handleMFAToggle = async () => {
-    try {
-      const res = await axios.post('/api/profile/mfa-toggle');
-      setEnabled(res.data.enabled);
-      if (res.data.qrCode) {
-        setQrCode(res.data.qrCode);
-      }
-      setMessage(`2FA ${enabled ? 'disabled' : 'enabled'} successfully`);
-    } catch (err) {
-      setMessage('Error toggling 2FA');
-    }
-  };
-
-  // A07:2021 - Identification and Authentication Failures
-  // Intentionally vulnerable: No proper validation
-  const toggleMFA = () => {
-    console.log('MFA toggled without proper validation');
-  };
-
   return (
     <div className="card mb-4">
       <div className="card-header">
