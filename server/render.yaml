@@ -2,14 +2,14 @@ services:
   - type: web
     name: kurukshetra-server
     env: node
-    buildCommand: cd server && npm install && npm run migrate
-    startCommand: cd server && npm start
+    buildCommand: npm install && npm run migrate
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: DB_PATH
-        value: /data/kurukshetra.sqlite
+        value: /opt/render/data/kurukshetra.sqlite
     disk:
       name: sqlite-data
-      mountPath: /data
+      mountPath: /opt/render/data
       sizeGB: 1

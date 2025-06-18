@@ -1,19 +1,20 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
-const md5 = require('md5'); // A02: intentional weak hash
+const md5 = require('md5');
 
-const dbPath = path.join(__dirname, '..', 'database', 'kurukshetra.sqlite');
+// Use environment variable for DB path with fallback
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'kurukshetra.sqlite');
 
 // Ensure database directory exists
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
-// Open database
-const db = new sqlite3.Database(dbPath, (err) => {
+// Open database with proper permissions
+const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
   if (err) {
     console.error('Error opening SQLite DB:', err.message);
   } else {
-    console.log('Connected to SQLite database.');
+    console.log('Connected to SQLite database at:', dbPath);
   }
 });
 

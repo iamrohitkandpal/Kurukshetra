@@ -8,7 +8,7 @@
     "dev": "nodemon server.js",
     "setup": "node server/utils/setup.js",
     "test": "jest --config=jest.config.js",
-    "migrate": "knex migrate:latest"
+    "migrate": "node utils/ensureDb.js && knex migrate:latest"
   },
   "keywords": [
     "security",
