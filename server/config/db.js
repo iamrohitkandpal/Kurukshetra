@@ -1,163 +1,154 @@
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const md5 = require('md5'); // For the intentional weak hash demonstration
+const fs = require('fs');
+const md5 = require('md5'); // A02: intentional weak hash
 
 const dbPath = path.join(__dirname, '..', 'database', 'kurukshetra.sqlite');
 
-// Database configuration
-const db = {
-  getDb: async () => {
-    try {
-      const database = await open({
-        filename: dbPath,
-        driver: sqlite3.Database
-      });
-      return database;
-    } catch (err) {
-      console.error('Database connection error:', err);
-      throw err;
-    }
-  }
-};
+// Ensure database directory exists
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
-// Test database connection
-const testConnection = async () => {
-  try {
-    const database = await db.getDb();
-    await database.raw('SELECT 1');
-    console.log('Database connected successfully');
-  } catch (err) {
-    console.error('Error connecting to database:', err);
-    process.exit(1);
+// Open database
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Error opening SQLite DB:', err.message);
+  } else {
+    console.log('Connected to SQLite database.');
   }
-};
+});
 
-// Initialize database with schema and initial data
+// Helper to run SQL with Promise support
+const runAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) reject(err);
+      else resolve(this);
+    });
+  });
+
+const getAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+
+const allAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+
 const initDatabase = async () => {
-  const database = await db.getDb();
+  // USERS TABLE
+  await runAsync(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'user',
+    api_key TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
 
-  // Create users table
-  await database.schema.hasTable('users').then(exists => {
-    if (!exists) {
-      return database.schema.createTable('users', table => {
-        table.increments('id').primary();
-        table.string('username').notNullable().unique();
-        table.string('email').notNullable();
-        table.string('password').notNullable();
-        table.string('role').defaultTo('user');
-        table.string('api_key');
-        table.timestamp('created_at').defaultTo(database.fn.now());
-      });
-    }
-  });
+  // PRODUCTS TABLE
+  await runAsync(`CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    price REAL NOT NULL,
+    image_url TEXT,
+    category TEXT,
+    stock INTEGER DEFAULT 0
+  )`);
 
-  // Create products table
-  await database.schema.hasTable('products').then(exists => {
-    if (!exists) {
-      return database.schema.createTable('products', table => {
-        table.increments('id').primary();
-        table.string('name').notNullable();
-        table.text('description');
-        table.float('price').notNullable();
-        table.string('image_url');
-        table.string('category');
-        table.integer('stock').defaultTo(0);
-      });
-    }
-  });
+  // ORDERS TABLE
+  await runAsync(`CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    total REAL NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  )`);
 
-  // Create orders table
-  await database.schema.hasTable('orders').then(exists => {
-    if (!exists) {
-      return database.schema.createTable('orders', table => {
-        table.increments('id').primary();
-        table.integer('user_id').references('id').inTable('users');
-        table.float('total').notNullable();
-        table.string('status').defaultTo('pending');
-        table.timestamp('created_at').defaultTo(database.fn.now());
-      });
-    }
-  });
+  // FEEDBACK TABLE
+  await runAsync(`CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    content TEXT NOT NULL,
+    rating INTEGER,
+    approved INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  )`);
 
-  // Create feedback table
-  await database.schema.hasTable('feedback').then(exists => {
-    if (!exists) {
-      return database.schema.createTable('feedback', table => {
-        table.increments('id').primary();
-        table.integer('user_id').references('id').inTable('users');
-        table.text('content').notNullable();
-        table.integer('rating');
-        table.integer('approved').defaultTo(0);
-        table.timestamp('created_at').defaultTo(database.fn.now());
-      });
-    }
-  });
+  // FILES TABLE
+  await runAsync(`CREATE TABLE IF NOT EXISTS files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    filename TEXT NOT NULL,
+    path TEXT NOT NULL,
+    type TEXT,
+    size INTEGER,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  )`);
 
-  // Create files table
-  await database.schema.hasTable('files').then(exists => {
-    if (!exists) {
-      return database.schema.createTable('files', table => {
-        table.increments('id').primary();
-        table.integer('user_id').references('id').inTable('users');
-        table.string('filename').notNullable();
-        table.string('path').notNullable();
-        table.string('type');
-        table.integer('size');
-        table.timestamp('uploaded_at').defaultTo(database.fn.now());
-      });
-    }
-  });
-
-  // Insert initial data
   await insertInitialData();
 };
 
 const insertInitialData = async () => {
-  const database = await db.getDb();
-
-  // Check if admin user exists
-  const adminUser = await database('users').where('username', 'admin').first();
-  
+  const adminUser = await getAsync(`SELECT * FROM users WHERE username = ?`, ['admin']);
   if (!adminUser) {
-    // A02: Cryptographic Failure - Using MD5 for passwords (intentional)
-    
-    // Insert admin user with weak password hash (md5)
-    await database('users').insert({
-      username: 'admin',
-      email: 'admin@vulnerable.app',
-      password: md5('admin123'),
-      role: 'admin',
-      api_key: 'admin-api-key-1234567890'
-    });
-    console.log('Admin user created');
-    
-    // Insert regular user
-    await database('users').insert({
-      username: 'user',
-      email: 'user@vulnerable.app',
-      password: md5('password123'),
-      role: 'user'
-    });
-    console.log('Regular user created');
+    await runAsync(`INSERT INTO users (username, email, password, role, api_key) VALUES (?, ?, ?, ?, ?)`, [
+      'admin',
+      'admin@vulnerable.app',
+      md5('admin123'), // A02
+      'admin',
+      'admin-api-key-1234567890'
+    ]);
+    await runAsync(`INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)`, [
+      'user',
+      'user@vulnerable.app',
+      md5('password123'),
+      'user'
+    ]);
+    console.log('Default users inserted.');
   }
-  
-  // Insert sample products
-  const productCount = await database('products').count('* as count').first();
-  
+
+  const productCount = await getAsync(`SELECT COUNT(*) AS count FROM products`);
   if (productCount.count === 0) {
     const products = [
-      { name: 'Laptop', description: 'High performance laptop', price: 999.99, category: 'electronics', stock: 10 },
-      { name: 'Smartphone', description: 'Latest smartphone model', price: 499.99, category: 'electronics', stock: 15 },
-      { name: 'Headphones', description: 'Noise cancelling', price: 99.99, category: 'accessories', stock: 20 }
+      ['Laptop', 'High performance laptop', 999.99, null, 'electronics', 10],
+      ['Smartphone', 'Latest smartphone model', 499.99, null, 'electronics', 15],
+      ['Headphones', 'Noise cancelling', 99.99, null, 'accessories', 20]
     ];
-    
-    await database('products').insert(products);
-    console.log('Sample products created');
+    for (const product of products) {
+      await runAsync(
+        `INSERT INTO products (name, description, price, image_url, category, stock) VALUES (?, ?, ?, ?, ?, ?)`,
+        product
+      );
+    }
+    console.log('Sample products inserted.');
   }
 };
 
-// Call test connection
+// Test connection
+const testConnection = async () => {
+  try {
+    await getAsync(`SELECT 1`);
+    console.log('SQLite DB test passed ✅');
+  } catch (err) {
+    console.error('SQLite DB test failed ❌', err);
+    process.exit(1);
+  }
+};
+
+// Initialize immediately
 testConnection();
 
-module.exports = { db, initDatabase };
+module.exports = { db, initDatabase, runAsync, getAsync, allAsync };
