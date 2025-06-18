@@ -1,13 +1,14 @@
 {
-  "name": "kurukshetra-server",
+  "name": "kurukshetra",
   "version": "1.0.0",
   "description": "Vulnerable web application for offensive security training",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "migrate": "knex migrate:latest",
-    "seed": "knex seed:run"
+    "setup": "node server/utils/setup.js",
+    "test": "jest --config=jest.config.js",
+    "postinstall": "mkdir -p database/migrations database/seeds"
   },
   "keywords": [
     "security",
@@ -47,8 +48,7 @@
     "uuid": "^9.0.1",
     "winston": "^3.17.0",
     "xml2js": "^0.4.23",
-    "yaml": "^2.8.0",
-    "knex": "^2.5.1"
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "concurrently": "^7.6.0",
