@@ -1,181 +1,223 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../config/db');
+const { getDb, getMongoDb } = require('../config/dbManager');
 const auth = require('../middleware/auth');
 const speakeasy = require('speakeasy');
-const QRCode = require('qrcode');
-const { checkEnv } = require('../utils/helpers');
+const qrcode = require('qrcode');
+const logger = require('../utils/logger');
+const User = require('../models/mongo/User');
 
-// Initialize 2FA for a user
+/**
+ * @route   POST /api/mfa/setup
+ * @desc    Set up MFA
+ * @access  Private
+ */
 router.post('/setup', auth, async (req, res) => {
-  if (!checkEnv('ENABLE_MFA_BYPASS')) {
-    return res.status(403).json({ error: 'MFA feature is disabled' });
+  try {
+    const { dbType } = req;
+    const userId = req.user.id;
+
+    // A07: Weak implementation - using MD5 for token
+    const secret = speakeasy.generateSecret({
+      length: 20,
+      name: `Kurukshetra:${req.user.username}`
+    });
+
+    if (dbType === 'mongodb') {
+      // Store temporary secret until verified
+      await User.findByIdAndUpdate(userId, {
+        $set: { tempMfaSecret: secret.base32 }
+      });
+    } else {
+      const db = getDb();
+      
+      // A03: SQL Injection vulnerability
+      await db.run(`
+        UPDATE users 
+        SET temp_mfa_secret = '${secret.base32}'
+        WHERE id = ${userId}
+      `);
+    }
+
+    // Generate QR code
+    const qrCode = await qrcode.toDataURL(secret.otpauth_url);
+
+    return res.json({
+      secret: secret.base32,
+      qrCode
+    });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ error: 'Server error' });
   }
-  
-  const userId = req.user.userId;
-  
-  // Generate a secret
-  const secret = speakeasy.generateSecret({
-    name: `Kurukshetra:${req.user.username}`
-  });
-  
-  // Store secret in database
-  db.run(
-    'UPDATE users SET mfa_secret = ? WHERE id = ?',
-    [secret.base32, userId],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
+});
+
+/**
+ * @route   POST /api/mfa/verify
+ * @desc    Verify and enable MFA
+ * @access  Private
+ */
+router.post('/verify', auth, async (req, res) => {
+  try {
+    const { token } = req.body;
+    const { dbType } = req;
+    const userId = req.user.id;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Please provide token' });
+    }
+
+    let tempSecret;
+
+    if (dbType === 'mongodb') {
+      const user = await User.findById(userId);
+      tempSecret = user.tempMfaSecret;
+      
+      if (!tempSecret) {
+        return res.status(400).json({ error: 'MFA setup not initiated' });
+      }
+    } else {
+      const db = getDb();
+      
+      // A03: SQL Injection vulnerability
+      const user = await db.get(`
+        SELECT temp_mfa_secret 
+        FROM users 
+        WHERE id = ${userId}
+      `);
+      
+      if (!user || !user.temp_mfa_secret) {
+        return res.status(400).json({ error: 'MFA setup not initiated' });
       }
       
-      // Generate QR code
-      QRCode.toDataURL(secret.otpauth_url, (err, dataUrl) => {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to generate QR code' });
-        }
-        
-        res.json({
-          message: '2FA setup initiated',
-          secret: secret.base32,  // A02: Cryptographic Failure - Leaking secret
-          qrCode: dataUrl
-        });
-      });
+      tempSecret = user.temp_mfa_secret;
     }
-  );
-});
 
-// Verify and enable 2FA
-router.post('/verify', auth, (req, res) => {
-  if (!checkEnv('ENABLE_MFA_BYPASS')) {
-    return res.status(403).json({ error: 'MFA feature is disabled' });
-  }
-  
-  const { token } = req.body;
-  const userId = req.user.userId;
-  
-  if (!token) {
-    return res.status(400).json({ error: 'Token required' });
-  }
-  
-  // Get user secret
-  db.get('SELECT mfa_secret FROM users WHERE id = ?', [userId], (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    
-    if (!user || !user.mfa_secret) {
-      return res.status(400).json({ error: '2FA not set up for this user' });
-    }
-    
-    // A07: Authentication Failure - Time window too large
-    // This allows tokens to be valid for much longer than they should be
-    const verified = speakeasy.totp.verify({
-      secret: user.mfa_secret,
-      encoding: 'base32',
-      token,
-      window: 10 // Very large window (5 minutes) - should be 1 or 2
-    });
-    
-    if (verified) {
-      // Enable 2FA for the user
-      db.run(
-        'UPDATE users SET mfa_enabled = 1 WHERE id = ?',
-        [userId],
-        function(err) {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
-          
-          res.json({ 
-            message: '2FA enabled successfully',
-            userId
-          });
-        }
-      );
-    } else {
-      res.status(401).json({ error: 'Invalid verification code' });
-    }
-  });
-});
-
-// Validate 2FA token during login
-router.post('/validate', (req, res) => {
-  if (!checkEnv('ENABLE_MFA_BYPASS')) {
-    return res.status(403).json({ error: 'MFA feature is disabled' });
-  }
-  
-  const { userId, token, bypassCode } = req.body;
-  
-  // A07: Authentication Bypass through hardcoded bypass code
-  if (bypassCode === 'BYPASS2FA') {
-    return res.json({
-      message: '2FA validated successfully (bypass)',
-      valid: true
-    });
-  }
-  
-  if (!userId || !token) {
-    return res.status(400).json({ error: 'User ID and token required' });
-  }
-  
-  // Get user secret
-  db.get('SELECT mfa_secret FROM users WHERE id = ?', [userId], (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    
-    if (!user || !user.mfa_secret) {
-      return res.status(400).json({ error: '2FA not set up for this user' });
-    }
-    
     // Verify token
     const verified = speakeasy.totp.verify({
-      secret: user.mfa_secret,
+      secret: tempSecret,
       encoding: 'base32',
       token,
-      window: 2
+      window: 1 // More secure would be 0, this allows 1 step before/after
     });
-    
-    res.json({
-      valid: verified,
-      message: verified ? '2FA validated successfully' : 'Invalid verification code'
-    });
-  });
+
+    if (!verified) {
+      return res.status(400).json({ error: 'Invalid token' });
+    }
+
+    if (dbType === 'mongodb') {
+      await User.findByIdAndUpdate(userId, {
+        $set: { mfaSecret: tempSecret },
+        $unset: { tempMfaSecret: 1 }
+      });
+    } else {
+      const db = getDb();
+      
+      await db.run(`
+        UPDATE users 
+        SET mfa_secret = temp_mfa_secret, temp_mfa_secret = NULL
+        WHERE id = ${userId}
+      `);
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-// Disable 2FA (with authorization bypass vulnerability)
-router.post('/disable', auth, (req, res) => {
-  if (!checkEnv('ENABLE_MFA_BYPASS')) {
-    return res.status(403).json({ error: 'MFA feature is disabled' });
-  }
-  
-  // A01: Broken Access Control
-  // This endpoint should check for admin role or authenticated user matches the userId
-  // but it doesn't, allowing anyone to disable MFA for any user
-  const { userId } = req.body;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID required' });
-  }
-  
-  db.run(
-    'UPDATE users SET mfa_enabled = 0, mfa_secret = NULL WHERE id = ?',
-    [userId],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      res.json({
-        message: '2FA disabled successfully',
-        userId
+/**
+ * @route   POST /api/mfa/disable
+ * @desc    Disable MFA
+ * @access  Private
+ */
+router.post('/disable', auth, async (req, res) => {
+  try {
+    const { dbType } = req;
+    const userId = req.user.id;
+
+    if (dbType === 'mongodb') {
+      await User.findByIdAndUpdate(userId, {
+        $unset: { mfaSecret: 1, tempMfaSecret: 1 }
       });
+    } else {
+      const db = getDb();
+      
+      await db.run(`
+        UPDATE users 
+        SET mfa_secret = NULL, temp_mfa_secret = NULL
+        WHERE id = ${userId}
+      `);
     }
-  );
+
+    return res.json({ success: true });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * @route   POST /api/mfa/login
+ * @desc    Login with MFA
+ * @access  Public
+ */
+router.post('/login', async (req, res) => {
+  try {
+    const { userId, token } = req.body;
+    const { dbType } = req;
+
+    if (!userId || !token) {
+      return res.status(400).json({ error: 'Please provide userId and token' });
+    }
+
+    let user;
+    let mfaSecret;
+
+    if (dbType === 'mongodb') {
+      user = await User.findById(userId);
+      
+      if (!user || !user.mfaSecret) {
+        return res.status(400).json({ error: 'MFA not enabled for this user' });
+      }
+      
+      mfaSecret = user.mfaSecret;
+    } else {
+      const db = getDb();
+      
+      // A03: SQL Injection vulnerability
+      user = await db.get(`
+        SELECT id, username, role, mfa_secret
+        FROM users 
+        WHERE id = ${userId}
+      `);
+      
+      if (!user || !user.mfa_secret) {
+        return res.status(400).json({ error: 'MFA not enabled for this user' });
+      }
+      
+      mfaSecret = user.mfa_secret;
+    }
+
+    // A07: Insecure authentication - No rate limiting on MFA attempts
+    const verified = speakeasy.totp.verify({
+      secret: mfaSecret,
+      encoding: 'base32',
+      token,
+      window: 1
+    });
+
+    if (!verified) {
+      return res.status(400).json({ error: 'Invalid token' });
+    }
+
+    // A07: Missing regeneration of session token after MFA
+    return res.json({ success: true });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 module.exports = router;
