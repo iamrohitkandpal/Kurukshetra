@@ -25,13 +25,14 @@ const Login = () => {
     setError('');
 
     try {
-      // A03: SQL Injection vulnerability exists in backend
       const res = await axios.post('/api/auth/login', { username, password });
       
-      // Set auth token
+      if (!res.data || !res.data.token) {
+        throw new Error('Invalid server response');
+      }
+      
       setToken(res.data.token);
       
-      // Set user info
       setUser({
         userId: res.data.user.id,
         username: res.data.user.username,
@@ -40,14 +41,17 @@ const Login = () => {
       
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Authentication failed');
+      setError(err.response?.data?.error || 
+               err.response?.data?.message || 
+               err.message || 
+               'Authentication failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="row">
+    <div className="row mt-5">
       <div className="col-md-6 offset-md-3">
         <div className="card shadow">
           <div className="card-body">
@@ -69,6 +73,7 @@ const Login = () => {
                   onChange={onChange}
                   required
                 />
+                <small className="text-muted">Try: admin' OR '1'='1</small>
               </div>
               <div className="mb-3">
                 <label htmlFor="password" className="form-label">Password</label>
@@ -104,5 +109,6 @@ const Login = () => {
     </div>
   );
 };
+
 
 export default Login;

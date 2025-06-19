@@ -21,12 +21,12 @@ const Register = () => {
 
   const onSubmit = async e => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    
+
     setLoading(true);
     setError('');
 
@@ -38,7 +38,7 @@ const Register = () => {
         email,
         password
       });
-      
+
       // Success, redirect to login
       navigate('/login');
     } catch (err) {

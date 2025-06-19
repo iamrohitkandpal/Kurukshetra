@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const FileList = () => {
@@ -6,32 +6,35 @@ const FileList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchFiles = async () => {
-      try {
-        const res = await axios.get('/api/files');
-        setFiles(res.data);
-      } catch (err) {
-        setError('Failed to load files');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFiles();
+  const fetchFiles = useCallback(async () => {
+    try {
+      setError('');
+      const res = await axios.get('/api/files');
+      setFiles(res.data);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to load files');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
 
   const downloadFile = (filename) => {
     // A03: Path Traversal vulnerability
-    window.open(`/uploads/${filename}`);
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    window.open(`${baseUrl}/uploads/${filename}`);
   };
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="alert alert-danger">{error}</div>;
 
   return (
     <div className="container">
       <h2>My Files</h2>
+      
+      {error && <div className="alert alert-danger">{error}</div>}
       
       {files.length > 0 ? (
         <div className="table-responsive">
