@@ -71,13 +71,13 @@ const ProductDetails = () => {
             <div className="col-md-4">
               {product.image_url ? (
                 <img 
-                  src={`/images/products/${product.image_url}`} // Updated path
+                  src={`${process.env.REACT_APP_API_URL}/images/products/${product.image_url}`}
                   alt={product.name} 
                   className="img-fluid rounded" 
                 />
               ) : (
                 <img
-                  src="/images/default/product-placeholder.png" // Default image
+                  src={`${process.env.REACT_APP_API_URL}/images/default/product-placeholder.png`}
                   alt="Product placeholder"
                   className="img-fluid rounded"
                 />

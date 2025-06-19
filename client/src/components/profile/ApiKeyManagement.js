@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import PropTypes from 'prop-types';
 
 const ApiKeyManagement = ({ apiKey: initialApiKey }) => {
   const [showKey, setShowKey] = useState(false);
@@ -72,6 +73,10 @@ const ApiKeyManagement = ({ apiKey: initialApiKey }) => {
       </div>
     </div>
   );
+};
+
+ApiKeyManagement.propTypes = {
+  apiKey: PropTypes.string
 };
 
 export default ApiKeyManagement;
