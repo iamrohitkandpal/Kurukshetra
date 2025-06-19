@@ -57,12 +57,15 @@ const ensureSqliteDb = () => {
 const ensureMongoDb = async () => {
   try {
     const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/kurukshetra';
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
     
-    logger.info('Connected to MongoDB successfully');
+    // Check if mongoose is already connected
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(mongoUri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      logger.info('Connected to MongoDB successfully');
+    }
     
     // Seed MongoDB with demo data if SEED_DATA is true
     if (process.env.SEED_DATA === 'true') {
@@ -80,38 +83,73 @@ const ensureMongoDb = async () => {
 // Seed MongoDB with demo data
 const seedMongoDb = async () => {
   try {
-    const { User } = require('../models/mongo/User');
+    const mongoose = require('mongoose');
     
-    // Check if we already have users to avoid duplicate seeding
-    const userCount = await User.countDocuments();
-    if (userCount > 0) {
-      logger.info('MongoDB already has data, skipping seed');
-      return;
+    // Ensure MongoDB models are loaded
+    require('../models/mongo/User');
+    require('../models/mongo/Product');
+    require('../models/mongo/Feedback');
+    
+    // Only proceed with loading default data if specified collections don't exist
+    // or are empty
+    const db = mongoose.connection.db;
+    
+    // Get all collections
+    const collections = await db.listCollections().toArray();
+    const collectionNames = collections.map(c => c.name);
+    
+    // Check if 'users' collection exists and has documents
+    if (!collectionNames.includes('users')) {
+      logger.info('Users collection not found in MongoDB, seeding demo data...');
+      await loadMongoDbSeed();
+    } else {
+      // Check if collection is empty
+      const userCount = await db.collection('users').countDocuments();
+      if (userCount === 0) {
+        logger.info('Users collection is empty in MongoDB, seeding demo data...');
+        await loadMongoDbSeed();
+      } else {
+        logger.info('MongoDB already has data, skipping seed');
+      }
     }
     
-    // Insert demo users
-    await User.insertMany(demoData.users);
-    
-    // Insert other demo data...
-    // You can add more collections here as needed
-    
-    logger.info('MongoDB demo data seeded successfully');
+    return true;
   } catch (error) {
     logger.error('Error seeding MongoDB:', error);
     throw error;
   }
 };
 
+// Helper function to load MongoDB data
+const loadMongoDbSeed = async () => {
+  try {
+    // Use the demoData module to load data
+    await require('./demoData').loadMockData('mongodb');
+    logger.info('MongoDB demo data loaded successfully');
+    return true;
+  } catch (error) {
+    logger.error('Error loading MongoDB demo data:', error);
+    throw error;
+  }
+};
+
 // Initialize the database based on the DB_TYPE
 const initializeDb = async () => {
-  const dbType = process.env.DB_TYPE || 'sqlite';
-  
-  switch (dbType) {
-    case 'mongodb':
-      return await ensureMongoDb();
-    case 'sqlite':
-    default:
-      return ensureSqliteDb();
+  try {
+    // Initialize both databases regardless of the DB_TYPE setting
+    // This ensures both are ready for use via the database switcher
+    const sqliteDb = await ensureSqliteDb();
+    logger.info('SQLite database initialized');
+    
+    const mongoDb = await ensureMongoDb();
+    logger.info('MongoDB database initialized');
+    
+    // Return the default database based on environment
+    const dbType = process.env.DB_TYPE || 'sqlite';
+    return dbType === 'mongodb' ? mongoDb : sqliteDb;
+  } catch (error) {
+    logger.error('Error initializing databases:', error);
+    throw error;
   }
 };
 

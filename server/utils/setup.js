@@ -12,9 +12,18 @@ dotenv.config();
 
 const setupDemoData = async () => {
   try {
+    logger.info('Setting up demo data for both databases...');
+    
+    // Setup data for SQLite
     await setupSqliteData();
+    logger.info('SQLite demo data setup completed');
+    
+    // Setup data for MongoDB
     await setupMongoData();
-    logger.info('Demo data setup completed successfully');
+    logger.info('MongoDB demo data setup completed');
+    
+    logger.info('Demo data setup completed successfully for both databases');
+    return true;
   } catch (err) {
     logger.error(`Error setting up demo data: ${err.message}`);
     throw err;
