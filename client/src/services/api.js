@@ -46,8 +46,13 @@ export const Api = {
 api.interceptors.response.use(
   response => response,
   error => {
-    console.error('API Error:', error.response?.data || error.message);
-    return Promise.reject(error);
+    const errorData = error.response?.data?.error || { 
+      message: error.message, 
+      code: 'UNKNOWN_ERROR' 
+    };
+    
+    console.error(`API Error: ${errorData.message} (${errorData.code})`);
+    return Promise.reject(errorData);
   }
 );
 

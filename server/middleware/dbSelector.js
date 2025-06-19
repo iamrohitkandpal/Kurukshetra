@@ -1,4 +1,4 @@
-const { getActiveDb } = require('../config/dbManager');
+const { getActiveDb, getDb, getMongoDb } = require('../config/dbManager');
 const logger = require('../utils/logger');
 
 /**
@@ -13,6 +13,9 @@ const dbSelector = (req, res, next) => {
     if (req.dbType !== 'sqlite' && req.dbType !== 'mongodb') {
       req.dbType = 'sqlite'; // Default to SQLite
     }
+    
+    // Attach the appropriate database connection to request
+    req.db = req.dbType === 'mongodb' ? getMongoDb() : getDb();
     
     next();
   } catch (error) {

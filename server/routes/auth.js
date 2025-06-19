@@ -130,31 +130,28 @@ router.post('/login', async (req, res) => {
     // Create JWT token
     // A07: Authentication Failures - Token has no expiration
     const payload = {
-      userId: user.id,
+      userId: user.id, // Use userId consistently instead of id
       username: user.username,
       role: user.role
     };
 
-    jwt.sign(
+    const token = jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'default_insecure_secret',
-      (err, token) => {
-        if (err) throw err;
-        
-        // A09: Security Logging
-        logger.info(`User logged in: ${user.username}`);
-        
-        res.json({
-          token,
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role
-          }
-        });
-      }
+      process.env.JWT_SECRET || 'insecure_jwt_secret',
+      { expiresIn: '1d' }
     );
+
+    logger.info(`User logged in: ${user.username}`);
+    
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
 
   } catch (err) {
     logger.error('Login error:', err);
@@ -266,149 +263,6 @@ router.post('/reset-password/confirm', async (req, res) => {
   } catch (err) {
     logger.error('Password reset confirm error:', err);
     return res.status(500).json({ error: 'Server error' });
-  }
-});
-
-module.exports = router;
-        logger.info(`Password reset requested for non-existent email: ${email}`);
-        // Still return success to prevent user enumeration
-        return res.json({ message: 'If your email is registered, you will receive password reset instructions' });
-      }
-      
-      // A07: Authentication Failures - Generating weak reset token
-      // A02: Cryptographic Failures - Insufficient entropy
-      const resetToken = crypto.randomBytes(16).toString('hex');
-      
-      // Store token in database (with no expiration)
-      // A04: Insecure Design - Reset token doesn't expire
-      user.resetToken = resetToken;
-      user.updatedAt = new Date();
-      await user.save();
-      
-      // In a real app, we would send an email with the token
-      logger.info(`Password reset token generated for user: ${user.username}`);
-      
-      res.json({ 
-        message: 'Password reset instructions sent to your email',
-        // A02: Cryptographic Failures - Exposing the token directly in response
-        token: resetToken
-      });
-    }
-    
-  } catch (err) {
-    logger.error(`Password reset error: ${err.message}`);
-    res.status(500).json({ error: 'Server error during password reset' });
-  }
-});
-
-// Reset password confirmation
-router.post('/reset-password/confirm', async (req, res) => {
-  const { token, newPassword } = req.body;
-  const dbType = req.dbType || 'sqlite';
-  
-  try {
-    // A07: Authentication Failures - No password complexity requirements
-    
-    if (dbType === 'sqlite') {
-      const db = dbManager.sqliteDb;
-      
-      // Find user by reset token
-      const user = await db('users').where('reset_token', token).first();
-      
-      if (!user) {
-        return res.status(400).json({ error: 'Invalid or expired token' });
-      }
-      
-      // A02: Cryptographic Failures - Weak password hashing
-      const hashedPassword = await helpers.hashPassword(newPassword);
-      
-      // Update password and clear token
-      await db('users')
-        .where('id', user.id)
-        .update({
-          password: hashedPassword,
-          reset_token: null,
-          updated_at: new Date()
-        });
-      
-      logger.info(`Password reset completed for user: ${user.username}`);
-      
-      res.json({ message: 'Password has been reset successfully' });
-      
-    } else if (dbType === 'mongodb') {
-      const User = require('../models/mongo/User');
-      
-      // Find user by reset token
-      const user = await User.findOne({ resetToken: token });
-      
-      if (!user) {
-        return res.status(400).json({ error: 'Invalid or expired token' });
-      }
-      
-      // A02: Cryptographic Failures - Weak password hashing
-      const hashedPassword = await helpers.hashPassword(newPassword);
-      
-      // Update password and clear token
-      user.password = hashedPassword;
-      user.resetToken = undefined;
-      user.updatedAt = new Date();
-      await user.save();
-      
-      logger.info(`Password reset completed for user: ${user.username}`);
-      
-      res.json({ message: 'Password has been reset successfully' });
-    }
-    
-  } catch (err) {
-    logger.error(`Password reset confirmation error: ${err.message}`);
-    res.status(500).json({ error: 'Server error during password reset' });
-  }
-});
-
-// Get current user (verify token)
-router.get('/me', auth, async (req, res) => {
-  const userId = req.user.userId;
-  const dbType = req.dbType || 'sqlite';
-  
-  try {
-    if (dbType === 'sqlite') {
-      const db = dbManager.sqliteDb;
-      
-      const user = await db('users').where('id', userId).first();
-      
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      res.json({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        mfaEnabled: user.mfa_enabled
-      });
-      
-    } else if (dbType === 'mongodb') {
-      const User = require('../models/mongo/User');
-      
-      const user = await User.findById(userId).select('-password');
-      
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      res.json({
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        mfaEnabled: user.mfaEnabled
-      });
-    }
-    
-  } catch (err) {
-    logger.error(`Get current user error: ${err.message}`);
-    res.status(500).json({ error: 'Server error' });
   }
 });
 

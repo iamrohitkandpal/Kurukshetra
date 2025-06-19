@@ -69,9 +69,42 @@ const getCurrentDbType = () => {
   return currentDbType;
 };
 
+// Add a function to properly manage the database type
+const setCurrentDbType = async (type) => {
+  if (!['sqlite', 'mongodb'].includes(type)) {
+    throw new Error(`Invalid database type: ${type}`);
+  }
+  
+  // Update in-memory value
+  currentDbType = type;
+  
+  // Optionally persist to environment or configuration
+  // (This is a simple implementation, you might want to use a more robust solution)
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(__dirname, '..', '.env');
+    let envContent = fs.readFileSync(envPath, 'utf8');
+    
+    // Replace or add DB_TYPE
+    if (envContent.includes('DB_TYPE=')) {
+      envContent = envContent.replace(/DB_TYPE=.+/g, `DB_TYPE=${type}`);
+    } else {
+      envContent += `\nDB_TYPE=${type}`;
+    }
+    
+    fs.writeFileSync(envPath, envContent);
+  } catch (err) {
+    logger.warn(`Could not persist DB_TYPE to .env: ${err.message}`);
+  }
+  
+  return { success: true, message: `Switched to ${type}` };
+};
+
 module.exports = {
   initializeConnections,
   getDb,
   switchDbType,
-  getCurrentDbType
+  getCurrentDbType,
+  setCurrentDbType
 };

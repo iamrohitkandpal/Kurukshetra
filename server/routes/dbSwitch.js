@@ -20,7 +20,7 @@ router.post('/switch', async (req, res) => {
       });
     }
     
-    const result = await switchDbType(type);
+    const result = await setCurrentDbType(type);
     
     // Get available vulnerabilities for the selected DB type
     const vulnerabilities = getVulnerabilitiesByType(type);

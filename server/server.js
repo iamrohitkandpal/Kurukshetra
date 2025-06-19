@@ -6,8 +6,10 @@ const morgan = require('morgan');
 const fs = require('fs');
 const path = require('path');
 const { initializeDb } = require('./utils/ensureDb');
+const { setupDemoData } = require('./utils/setup');
 const logger = require('./utils/logger');
 const bodyParser = require('body-parser');
+const dbSelector = require('./middleware/dbSelector');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(bodyParser.raw({ type: '*/*' })); // Intentionally insecure (A06)
+app.use(dbSelector);
 
 // Create uploads directory if it doesn't exist
 const uploadsPath = path.join(__dirname, 'uploads');
@@ -46,8 +49,18 @@ app.get('/', (req, res) => {
 
 // Initialize DB and Routes
 initializeDb()
-  .then(() => {
+  .then(async () => {
     logger.info(`Database ${process.env.DB_TYPE || 'sqlite'} initialized successfully`);
+    
+    // Explicitly seed demo data for both databases if SEED_DATA is true
+    if (process.env.SEED_DATA === 'true') {
+      try {
+        await setupDemoData();
+        logger.info('Demo data initialized for both databases');
+      } catch (err) {
+        logger.error('Error setting up demo data:', err);
+      }
+    }
 
     // API Routes
     app.use('/api/auth', require('./routes/auth'));
