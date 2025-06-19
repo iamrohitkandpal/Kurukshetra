@@ -1,0 +1,42 @@
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+
+# Database
+data/*.sqlite
+data/*.db
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Uploaded files
+uploads/*
+!uploads/.gitkeep
+!uploads/sample.txt
+!uploads/config.json
+!uploads/.htaccess
+
+# Build output
+dist/
+build/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
