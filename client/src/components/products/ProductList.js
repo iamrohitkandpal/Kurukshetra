@@ -77,7 +77,7 @@ const ProductList = () => {
             <button type="submit" className="btn btn-primary">Search</button>
           </form>
           <div className="text-muted small mt-2">
-            <em>Try search terms with SQL injection like: ' OR 1=1 --</em>
+            <em>Try search terms with SQL injection like: &apos; OR 1=1 --</em>
           </div>
         </div>
       </div>

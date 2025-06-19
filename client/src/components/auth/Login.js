@@ -73,7 +73,7 @@ const Login = () => {
                   onChange={onChange}
                   required
                 />
-                <small className="text-muted">Try: admin' OR '1'='1</small>
+                <small className="text-muted">Try: admin&apos; OR &apos;1&apos;=&apos;1</small>
               </div>
               <div className="mb-3">
                 <label htmlFor="password" className="form-label">Password</label>

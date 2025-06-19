@@ -1,12 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const xml2js = require('xml2js');
-const { DOMParser } = require('xmldom');
 const logger = require('../utils/logger');
 const auth = require('../middleware/auth');
-
-// A04: Insecure Design - XXE Vulnerability
-// This route intentionally has an XML External Entity vulnerability
 
 /**
  * @route POST /api/xxe/parse
@@ -21,33 +17,22 @@ router.post('/parse', auth, async (req, res) => {
 
     const xml = req.body.xml;
     
-    // Vulnerable XML parsing - no entity restrictions
-    const parser = new DOMParser({
-      errorHandler: {
-        warning: (w) => logger.warn(w),
-        error: (e) => logger.error(e),
-        fatalError: (e) => logger.error(e),
-      }
+    // Replace the DOMParser implementation with xml2js
+    // A04, A06: Insecure parsing of XML that allows XXE
+    const parser = new xml2js.Parser({
+      explicitArray: false,
+      // Intentionally allowing external entity expansion (XXE)
+      xmlnsExplicitlyAllowed: true
     });
     
-    // A04, A06: Insecure parsing of XML that allows XXE
-    const doc = parser.parseFromString(xml, 'text/xml');
-    
-    // Extract data from parsed XML
-    const result = {};
-    const rootNode = doc.documentElement;
-    
-    // A simple traversal of the XML nodes
-    if (rootNode && rootNode.childNodes) {
-      for (let i = 0; i < rootNode.childNodes.length; i++) {
-        const node = rootNode.childNodes[i];
-        if (node.nodeType === 1) { // Element node
-          result[node.nodeName] = node.textContent;
-        }
+    parser.parseString(xml, (err, result) => {
+      if (err) {
+        logger.error(`XML parsing error: ${err.message}`);
+        return res.status(400).json({ error: 'Invalid XML format' });
       }
-    }
-    
-    res.json(result);
+      
+      res.json(result);
+    });
     
   } catch (error) {
     logger.error(`XXE parsing error: ${error.message}`);
@@ -102,7 +87,7 @@ router.get('/example', (req, res) => {
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <!DOCTYPE foo [
   <!ENTITY xxe SYSTEM "file:///etc/passwd">
-}>
+]>
 <user>
   <username>admin</username>
   <password>password123</password>
@@ -111,18 +96,6 @@ router.get('/example', (req, res) => {
 `;
 
   res.json({ example });
-});
-
-module.exports = router;
-    <name>Sample Product 2</name>
-    <description>Another sample product</description>
-    <price>29.99</price>
-    <category>sample</category>
-    <stock>5</stock>
-  </product>
-</products>`;
-  
-  res.header('Content-Type', 'application/xml').send(sampleXml);
 });
 
 module.exports = router;
