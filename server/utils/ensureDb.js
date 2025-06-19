@@ -6,6 +6,8 @@ const config = require('../knexfile');
 const mongoose = require('mongoose');
 const demoData = require('./demoData');
 
+const db = require('../config/db');  
+
 // Ensure SQLite database directory exists
 const ensureSqliteDb = () => {
   // Use relative path for better Render compatibility

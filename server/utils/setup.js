@@ -1,18 +1,16 @@
-// setup.js (final production-consistent version for Kurukshetra)
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const dotenv = require('dotenv');
+const { getDb } = require('../config/dbManager'); 
+const logger = require('./logger');
+const { demoUsers, demoProducts, demoFeedback } = require('./demoData');
+const { initializeDb } = require('../config/db');
 
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
-import { getDb } from '../config/db';
-import logger from './logger';
-import { demoUsers, demoProducts, demoFeedback } from './demoData';
-import { ensureDbExists } from './ensureDb';
-import { initDatabases } from '../config/dbManager';
 dotenv.config();
 
-export const setupDemoData = async () => {
+const setupDemoData = async () => {
   try {
     await setupSqliteData();
     await setupMongoData();
@@ -156,7 +154,7 @@ const setupMongoData = async () => {
   logger.info('MongoDB demo data setup complete');
 };
 
-export const setupDatabase = async () => {
+const setupDatabase = async () => {
   try {
     await ensureDbExists();
     await initDatabases();
@@ -165,4 +163,9 @@ export const setupDatabase = async () => {
     logger.error('Database setup failed:', error);
     throw error;
   }
+};
+
+module.exports = {
+  setupDemoData,
+  setupDatabase
 };
