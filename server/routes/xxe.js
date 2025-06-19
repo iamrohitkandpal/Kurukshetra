@@ -1,119 +1,119 @@
 const express = require('express');
 const router = express.Router();
 const xml2js = require('xml2js');
-const fs = require('fs');
-const path = require('path');
-const { checkEnv } = require('../utils/helpers');
+const { DOMParser } = require('xmldom');
+const logger = require('../utils/logger');
 const auth = require('../middleware/auth');
 
-// XXE Vulnerable XML parser
-router.post('/parse', (req, res) => {
-  if (!checkEnv('ENABLE_XXE')) {
-    return res.status(403).json({ error: 'XXE feature is disabled' });
-  }
-  
-  const { xml } = req.body;
-  
-  if (!xml) {
-    return res.status(400).json({ error: 'XML string required' });
-  }
-  
-  // A03: XXE Injection vulnerability - No disabling of external entities
-  const parser = new xml2js.Parser({
-    explicitArray: false,
-    // A03: XXE - Should have { disableEntityReferences: true } here
-  });
-  
-  parser.parseString(xml, (err, result) => {
-    if (err) {
-      return res.status(400).json({ error: err.message });
+// A04: Insecure Design - XXE Vulnerability
+// This route intentionally has an XML External Entity vulnerability
+
+/**
+ * @route POST /api/xxe/parse
+ * @desc Parse an XML document with XXE vulnerabilities
+ * @access Private
+ */
+router.post('/parse', auth, async (req, res) => {
+  try {
+    if (!req.body.xml) {
+      return res.status(400).json({ error: 'XML data is required' });
+    }
+
+    const xml = req.body.xml;
+    
+    // Vulnerable XML parsing - no entity restrictions
+    const parser = new DOMParser({
+      errorHandler: {
+        warning: (w) => logger.warn(w),
+        error: (e) => logger.error(e),
+        fatalError: (e) => logger.error(e),
+      }
+    });
+    
+    // A04, A06: Insecure parsing of XML that allows XXE
+    const doc = parser.parseFromString(xml, 'text/xml');
+    
+    // Extract data from parsed XML
+    const result = {};
+    const rootNode = doc.documentElement;
+    
+    // A simple traversal of the XML nodes
+    if (rootNode && rootNode.childNodes) {
+      for (let i = 0; i < rootNode.childNodes.length; i++) {
+        const node = rootNode.childNodes[i];
+        if (node.nodeType === 1) { // Element node
+          result[node.nodeName] = node.textContent;
+        }
+      }
     }
     
-    res.json({
-      message: 'XML parsed successfully',
-      result
-    });
-  });
+    res.json(result);
+    
+  } catch (error) {
+    logger.error(`XXE parsing error: ${error.message}`);
+    res.status(500).json({ error: 'XML parsing failed' });
+  }
 });
 
-// Import products from XML
-router.post('/import/products', auth, (req, res) => {
-  if (!checkEnv('ENABLE_XXE')) {
-    return res.status(403).json({ error: 'XXE feature is disabled' });
-  }
-  
-  // Check if user has admin role
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  
-  // Get XML from request
-  let xmlData;
-  
-  if (req.files && req.files.xmlFile) {
-    // From file upload
-    xmlData = req.files.xmlFile.data.toString();
-  } else if (req.body.xml) {
-    // From JSON body
-    xmlData = req.body.xml;
-  } else {
-    return res.status(400).json({ error: 'XML data required (either as file or in request body)' });
-  }
-  
-  // A03: XXE Injection vulnerability - Unsafe XML parsing
-  const parser = new xml2js.Parser({
-    // A03: XXE - Missing entity reference protection
-  });
-  
-  parser.parseString(xmlData, (err, result) => {
-    if (err) {
-      return res.status(400).json({ error: err.message });
+/**
+ * @route POST /api/xxe/convert
+ * @desc Convert XML to JSON with XXE vulnerabilities
+ * @access Private
+ */
+router.post('/convert', auth, async (req, res) => {
+  try {
+    if (!req.body.xml) {
+      return res.status(400).json({ error: 'XML data is required' });
     }
+
+    const xml = req.body.xml;
     
-    try {
-      const products = result.products.product;
-      
-      if (!products || !Array.isArray(products)) {
-        return res.status(400).json({ error: 'Invalid product data format' });
+    // A04, A06: Vulnerable XML to JSON conversion
+    // No validation or entity restrictions
+    const parser = new xml2js.Parser({
+      explicitArray: false,
+      // Intentionally allowing external entity expansion
+      xmlnsExplicitlyAllowed: true
+    });
+    
+    parser.parseString(xml, (err, result) => {
+      if (err) {
+        logger.error(`XML to JSON conversion error: ${err.message}`);
+        return res.status(400).json({ error: 'Invalid XML format' });
       }
       
-      // Process products
-      res.json({
-        message: `${products.length} products parsed successfully`,
-        products
-      });
-      
-    } catch (err) {
-      res.status(400).json({ error: 'Invalid XML structure' });
-    }
-  });
+      res.json(result);
+    });
+    
+  } catch (error) {
+    logger.error(`XXE conversion error: ${error.message}`);
+    res.status(500).json({ error: 'XML conversion failed' });
+  }
 });
 
-// Export sample XML (for demonstration)
-router.get('/sample', (req, res) => {
-  if (!checkEnv('ENABLE_XXE')) {
-    return res.status(403).json({ error: 'XXE feature is disabled' });
-  }
-  
-  const sampleXml = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE products [
-  <!ELEMENT products (product*)>
-  <!ELEMENT product (name, description, price, category, stock)>
-  <!ELEMENT name (#PCDATA)>
-  <!ELEMENT description (#PCDATA)>
-  <!ELEMENT price (#PCDATA)>
-  <!ELEMENT category (#PCDATA)>
-  <!ELEMENT stock (#PCDATA)>
-]>
-<products>
-  <product>
-    <name>Sample Product 1</name>
-    <description>This is a sample product</description>
-    <price>19.99</price>
-    <category>sample</category>
-    <stock>10</stock>
-  </product>
-  <product>
+/**
+ * @route GET /api/xxe/example
+ * @desc Get example XML with XXE vulnerability
+ * @access Public
+ */
+router.get('/example', (req, res) => {
+  // This provides an example of an XML with XXE for demonstration
+  const example = `
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE foo [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+}>
+<user>
+  <username>admin</username>
+  <password>password123</password>
+  <info>&xxe;</info>
+</user>
+`;
+
+  res.json({ example });
+});
+
+module.exports = router;
     <name>Sample Product 2</name>
     <description>Another sample product</description>
     <price>29.99</price>

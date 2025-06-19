@@ -1,44 +1,99 @@
 const jwt = require('jsonwebtoken');
-const { db } = require('../config/db');
+const logger = require('../utils/logger');
+const { getIpAddress } = require('../utils/helpers');
 
-// A02: Cryptographic Failures - Weak JWT secret and algorithm
-const JWT_SECRET = 'insecure_jwt_secret'; // Intentionally weak and hardcoded
-
-// A01: Broken Access Control - Weak authentication implementation
-module.exports = function(req, res, next) {
+/**
+ * Middleware to authenticate JSON Web Token
+ * A07: JWT handling without proper error checking
+ */
+const auth = (req, res, next) => {
   // Get token from header
-  const token = req.header('x-auth-token') || req.cookies.token;
+  const token = req.header('x-auth-token');
+
+  // Check if no token
+  if (!token) {
+    return res.status(401).json({ error: 'No token, authorization denied' });
+  }
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_insecure_secret');
+    
+    // Add user from payload
+    req.user = decoded;
+    
+    // Log access
+    logger.info(`Authenticated access: ${req.user.username} [${req.user.role}]`);
+    
+    next();
+  } catch (err) {
+    logger.security('Authentication failure', null, getIpAddress(req));
+    return res.status(401).json({ error: 'Token is not valid' });
+  }
+};
+
+/**
+ * Middleware to ensure admin role
+ * A01: Broken access control - insufficient checks
+ */
+const admin = (req, res, next) => {
+  // First run auth middleware
+  auth(req, res, () => {
+    if (req.user && req.user.role === 'admin') {
+      next();
+    } else {
+      logger.security('Unauthorized admin access attempt', 
+        req.user ? req.user.username : null, 
+        getIpAddress(req)
+      );
+      return res.status(403).json({ error: 'Unauthorized. Admin access required' });
+    }
+  });
+};
+
+/**
+ * API key authentication for external requests
+ * A02: Insecure cryptographic storage - API keys without rate limiting
+ */
+const apiKey = async (req, res, next) => {
+  const key = req.header('x-api-key');
   
-  // A07: Authentication Failures - Accepting API key as alternative with no rate limiting
-  const apiKey = req.header('x-api-key');
-  
-  // Check for token or API key
-  if (!token && !apiKey) {
-    return res.status(401).json({ error: 'No token or API key, authorization denied' });
+  if (!key) {
+    return res.status(401).json({ error: 'API key required' });
   }
   
   try {
-    if (token) {
-      // Verify token
-      const decoded = jwt.verify(token, JWT_SECRET);
-      req.user = decoded;
-      next();
-    } else if (apiKey) {
-      // A07: Weak API authentication - Simple lookup without rate limiting or sufficient entropy
-      db.get('SELECT * FROM users WHERE api_key = ?', [apiKey], (err, user) => {
-        if (err || !user) {
-          return res.status(401).json({ error: 'Invalid API key' });
-        }
-        req.user = {
-          userId: user.id,
-          username: user.username,
-          role: user.role
-        };
-        next();
-      });
+    const dbType = req.dbType;
+    let user;
+
+    if (dbType === 'mongodb') {
+      const User = require('../models/mongo/User');
+      user = await User.findOne({ apiKey: key });
+    } else {
+      const db = require('../config/db');
+      user = await db.get(`SELECT * FROM users WHERE api_key = '${key}'`);
     }
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+
+    // Add user to request
+    req.user = {
+      userId: user.id,
+      username: user.username,
+      role: user.role
+    };
+
+    next();
   } catch (err) {
-    // A09: Logging Failure - Revealing sensitive error details
-    res.status(401).json({ error: 'Token is not valid', details: err.message });
+    logger.error('API key authentication error', err);
+    return res.status(500).json({ error: 'Server error during authentication' });
   }
+};
+
+module.exports = {
+  auth,
+  admin,
+  apiKey
 };
