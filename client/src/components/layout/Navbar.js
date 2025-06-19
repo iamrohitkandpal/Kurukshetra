@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 
 const Navbar = () => {
-  const { user, setToken } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
 
   const handleLogout = () => {
-    setToken(null);
+    logout();
   };
 
   return (
@@ -29,6 +29,9 @@ const Navbar = () => {
               <>
                 <li className="nav-item">
                   <Link className="nav-link" to="/dashboard">Dashboard</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/products">Products</Link>
                 </li>
                 {user.role === 'admin' && (
                   <li className="nav-item">

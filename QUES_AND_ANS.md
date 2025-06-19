@@ -1,91 +1,89 @@
-# Kurukshetra - Interview Questions & Answers
+# Kurukshetra - Frequently Asked Questions
 
-## Technical Round Questions
+## General Questions
 
-### 1. Explain the architecture of your application
-**Answer:** Kurukshetra follows a modern full-stack architecture with:
-- Frontend: React.js with Context API for state management
-- Backend: Node.js/Express.js REST API
-- Databases: SQLite for primary storage, MongoDB for NoSQL examples
-- Authentication: JWT-based with optional 2FA
-- Security: Intentionally vulnerable implementations of OWASP Top 10
+### Q: What is Kurukshetra?
+**A:** Kurukshetra is an intentionally vulnerable web application designed for cybersecurity training and education. It implements vulnerabilities based on the OWASP Top 10 (2021) to provide a safe environment for practicing security testing.
 
-The application is containerized using Docker and follows a modular component-based structure for better maintainability and scalability.
+### Q: Is it safe to use Kurukshetra on my computer?
+**A:** Kurukshetra is designed to be used in a controlled environment. While the vulnerabilities are contained within the application, it's recommended to run it on a separate development environment or virtual machine, especially if you're deploying the MongoDB component.
 
-### 2. What security vulnerabilities have you implemented and why?
-**Answer:** I've implemented all OWASP Top 10 (2021) vulnerabilities:
-1. Broken Access Control - To demonstrate IDOR, CSRF, and access control issues
-2. Cryptographic Failures - Showing weak password storage and insecure communication
-3. Injection - Including SQL, NoSQL, and Command injection points
-4. Insecure Design - Demonstrating architectural security flaws
-5. Security Misconfiguration - Showing common configuration mistakes
+### Q: Can I use Kurukshetra for a security training class?
+**A:** Yes! Kurukshetra is specifically designed for education and training purposes. It's ideal for classrooms, workshops, and security training exercises.
 
-Each vulnerability is implemented with varying difficulty levels to support learning progression.
+## Technical Questions
 
-### 3. How did you handle state management in the frontend?
-**Answer:** I used React's Context API for global authentication state and local component state for specific features. The choice was based on:
-1. Simplicity of implementation
-2. Built-in React feature requiring no additional dependencies
-3. Sufficient for the application's needs without Redux complexity
-4. Easy to maintain and understand
+### Q: Why does Kurukshetra support both SQLite and MongoDB?
+**A:** This dual-database design allows users to practice both SQL and NoSQL injection techniques. Different types of databases have different security considerations, so this provides a more comprehensive learning experience.
 
-### 4. Explain your database schema design decisions
-**Answer:** The database schema was designed to:
-1. Support core features (users, products, feedback)
-2. Demonstrate various security vulnerabilities
-3. Maintain referential integrity where needed
-4. Allow for future extensibility
+### Q: How do I switch between SQLite and MongoDB?
+**A:** You can toggle between databases using the Database Selection panel in the UI. This sends a request to the API that changes the active database connection for subsequent requests.
 
-Key tables include users, products, security_questions, and vulnerability_progress, with appropriate relationships and constraints.
+### Q: Are there different difficulty levels for the vulnerabilities?
+**A:** Yes, vulnerabilities are implemented at different difficulty levels:
+- **Basic**: Clear and obvious vulnerabilities for beginners
+- **Intermediate**: Requires more understanding of the vulnerability
+- **Advanced**: Requires deeper security knowledge and potentially chaining multiple techniques
 
-### 5. How did you implement the authentication system?
-**Answer:** The authentication system uses:
-1. JWT for token-based authentication
-2. Optional 2FA using TOTP
-3. Password reset functionality
-4. API key authentication for certain endpoints
+### Q: What should I do if I find an unintentional vulnerability?
+**A:** If you believe you've found a vulnerability that wasn't intentionally implemented for training purposes, please create an issue on the GitHub repository.
 
-It intentionally includes vulnerabilities like weak password storage and insecure token handling for educational purposes.
+## Security Questions
 
-## HR Round Questions
+### Q: I found a way to access the admin panel without proper credentials. Is this intentional?
+**A:** Yes, there are multiple intentional authentication bypasses and broken access controls in Kurukshetra. This is part of the A01 (Broken Access Control) and A07 (Authentication & Identification Failures) categories.
 
-### 1. What motivated you to create this project?
-**Answer:** I created Kurukshetra to:
-1. Provide a hands-on learning platform for security professionals
-2. Help developers understand common security vulnerabilities
-3. Create a safe environment for practicing security testing
-4. Contribute to the cybersecurity education community
+### Q: The application stores sensitive data in plain text. Is this a bug?
+**A:** No, this is an intentional vulnerability representing A02 (Cryptographic Failures). In a real-world application, sensitive data should always be encrypted.
 
-### 2. What challenges did you face during development?
-**Answer:** Key challenges included:
-1. Balancing security education with responsible disclosure
-2. Creating realistic but controlled vulnerabilities
-3. Managing multiple vulnerability implementations
-4. Ensuring the application remains educational while being intentionally vulnerable
+### Q: I was able to upload and execute malicious files. Should this be fixed?
+**A:** This is an intentional vulnerability representing A03 (Injection) and A05 (Security Misconfiguration). Kurukshetra intentionally allows dangerous file uploads for training purposes.
 
-### 3. How do you stay updated with security trends?
-**Answer:** I:
-1. Follow security researchers and organizations
-2. Participate in security communities
-3. Read security blogs and publications
-4. Attend security conferences and webinars
-5. Practice on platforms like HackTheBox and TryHackMe
+## Usage Questions
 
-### 4. How would you explain this project to non-technical stakeholders?
-**Answer:** Kurukshetra is like a flight simulator for cybersecurity professionals. Just as pilots practice in simulators before flying real planes, security professionals can practice finding and fixing security issues in this controlled environment without risking real systems.
+### Q: How do I track my progress in identifying vulnerabilities?
+**A:** Kurukshetra includes a progress tracking feature in the dashboard. Successfully exploiting a vulnerability will mark it as completed.
 
-### 5. Where do you see this project going in the future?
-**Answer:** Future plans include:
-1. Adding new vulnerability types as they emerge
-2. Implementing different difficulty levels
-3. Adding guided learning paths
-4. Creating detailed documentation and tutorials
-5. Building a community around security education
+### Q: Can I reset my progress?
+**A:** Yes, there's a "Reset Progress" button in the vulnerability progress section of the dashboard.
 
-### 6. How do you handle feedback and contributions?
-**Answer:** I:
-1. Welcome community contributions through pull requests
-2. Maintain clear contribution guidelines
-3. Review and implement valuable suggestions
-4. Actively engage with users and contributors
-5. Regularly update documentation based on feedback
+### Q: How do I know when I've successfully exploited a vulnerability?
+**A:** When you successfully exploit a vulnerability, you'll typically receive feedback through:
+1. Access to protected resources
+2. Visible data that should be hidden
+3. Execution of operations that should be restricted
+4. Automatic progress tracking in some cases
+
+## Development Questions
+
+### Q: How can I contribute to Kurukshetra?
+**A:** Contributions are welcome! You can contribute by:
+1. Adding new vulnerabilities
+2. Improving documentation
+3. Enhancing UI/UX
+4. Fixing non-intentional bugs
+
+### Q: Can I add my own custom vulnerabilities?
+**A:** Yes, the codebase is designed to be extensible. You can create new routes and components to demonstrate additional vulnerabilities.
+
+### Q: How should I set up my development environment?
+**A:** Follow these steps:
+1. Clone the repository
+2. Install dependencies for both frontend and backend
+3. Set up environment variables
+4. Run the database setup script
+5. Start the development servers
+
+## Troubleshooting
+
+### Q: I can't connect to MongoDB. What should I do?
+**A:** Ensure MongoDB is installed and running on your system. The default connection string is `mongodb://localhost:27017/kurukshetra`, but you can modify this in the .env file.
+
+### Q: The application shows a blank page after login. How do I fix this?
+**A:** This could be due to an issue with JWT token handling. Try clearing your browser's local storage and cookies, then log in again.
+
+### Q: File uploads aren't working. What's wrong?
+**A:** Check if the uploads directory has the proper write permissions. Also verify that the environment variable `UPLOAD_DIR` is correctly set.
+
+### Q: I'm getting CORS errors when connecting to the API. How do I resolve this?
+**A:** Ensure the CLIENT_URL in your server's .env file matches the actual URL where the frontend is running (typically `http://localhost:3000` in development).
