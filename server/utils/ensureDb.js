@@ -56,7 +56,7 @@ const ensureSqliteDb = () => {
 // Ensure MongoDB connection and seeding
 const ensureMongoDb = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/kurukshetra';
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/kurukshetra';
     
     // Check if mongoose is already connected
     if (mongoose.connection.readyState !== 1) {

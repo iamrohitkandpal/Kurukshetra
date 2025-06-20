@@ -19,5 +19,5 @@ services:
         value: sqlite
       - key: SEED_DATA
         value: true
-      - key: MONGO_URI
+      - key: MONGODB_URI
         sync: false
