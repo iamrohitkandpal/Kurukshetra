@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 const { getIpAddress } = require('../utils/helpers');
+const bcrypt = require('bcrypt');
 
 /**
  * Middleware to authenticate JSON Web Token
@@ -91,6 +92,50 @@ const apiKey = async (req, res, next) => {
     return res.status(500).json({ error: 'Server error during authentication' });
   }
 };
+
+// Registration route
+router.post('/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    const dbType = req.dbType;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'Please enter all fields' });
+    }
+
+    if (dbType === 'sqlite') {
+      const db = require('../config/db');
+      
+      // Use parameterized query with async/await
+      const existingUser = await db.get(
+        'SELECT id FROM users WHERE email = ? OR username = ?', 
+        [email, username]
+      );
+
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      // Use parameterized query for insert
+      await db.get(
+        `INSERT INTO users (username, email, password, role, created_at) 
+         VALUES (?, ?, ?, 'user', datetime('now'))`,
+        [username, email, hashedPassword]
+      );
+      
+      return res.status(201).json({ message: 'User registered successfully' });
+    } else {
+      // MongoDB logic...
+    }
+  } catch (err) {
+    logger.error('Register error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Keep the current export in auth.js
 module.exports = {

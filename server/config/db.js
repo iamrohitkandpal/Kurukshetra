@@ -165,7 +165,7 @@ const createTables = async () => {
   }
 };
 
-// Update the module exports
+// Update the exports to handle async operations
 module.exports = {
   initializeDb,
   getDb,

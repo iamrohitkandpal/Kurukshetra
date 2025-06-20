@@ -63,11 +63,10 @@ initializeDb()
   .then(async () => {
     logger.info(`Database ${process.env.DB_TYPE || 'sqlite'} initialized successfully`);
     
-    // Explicitly seed demo data for both databases if SEED_DATA is true
     if (process.env.SEED_DATA === 'true') {
       try {
         await setupDemoData();
-        logger.info('Demo data initialized for both databases');
+        logger.info('Demo data initialized');
       } catch (err) {
         logger.error('Error setting up demo data:', err);
       }
@@ -93,12 +92,11 @@ initializeDb()
 
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
-      logger.warn('This application contains intentional security vulnerabilities for training purposes');
     });
   })
   .catch((err) => {
     logger.error('Failed to initialize database:', err);
-    process.exit(1); // Fail loudly if DB init fails
+    process.exit(1);
   });
 
 // Global error handler (A09 - exposes stack)
