@@ -191,57 +191,7 @@ router.post('/', auth, async (req, res) => {
 
 // @route   DELETE api/products/:id
 // @desc    Delete a product
-// @access  Private - In a real app, should be admin only
-router.delete('/:id', auth, async (req, res) => {
-  // A01: Broken Access Control - No check for admin role
-  try {
-    const { id } = req.params;
-    const dbType = req.dbType;
-    
-    if (dbType === 'mongodb') {
-      const Product = mongoose.model('Product');
-      const product = await Product.findById(id);
-      
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      
-      await Product.findByIdAndDelete(id);
-    } else {
-      // Check if product exists
-      const product = await db.get(`SELECT * FROM products WHERE id = ${id}`);
-      
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      
-      await db.run(`DELETE FROM products WHERE id = ${id}`);
-    }
-    
-    return res.json({ message: 'Product deleted' });
-  } catch (err) {
-    logger.error('Error deleting product:', err);
-    return res.status(500).json({ error: 'Server error' });
-  }
-});
-
-module.exports = router;
-          return res.status(404).json({ error: 'Product not found' });
-        }
-        
-        res.json({ message: 'Product deleted successfully' });
-      });
-    }
-  } catch (err) {
-    console.error('Error deleting product:', err);
-    res.status(500).json({ error: 'Failed to delete product' });
-  }
-});
-
-module.exports = router;
-});
-
-// Delete product (admin only)
+// @access  Private - Admin only
 router.delete('/:id', auth, async (req, res) => {
   const { id } = req.params;
   const dbType = req.dbType || 'sqlite';
@@ -266,7 +216,7 @@ router.delete('/:id', auth, async (req, res) => {
       res.json({ message: 'Product deleted successfully' });
       
     } else if (dbType === 'mongodb') {
-      const Product = require('../models/mongo/Product');
+      const Product = require('mongoose').model('Product');
       
       const product = await Product.findByIdAndDelete(id);
       
