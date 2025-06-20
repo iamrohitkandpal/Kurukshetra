@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDb, getMongoDb } = require('../config/dbManager');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 /**
@@ -69,6 +69,7 @@ router.get('/', auth, async (req, res) => {
     
     if (dbType === 'mongodb') {
       const db = getMongoDb();
+      
       const feedback = await db.collection('feedback')
         .find({})
         .sort({ createdAt: -1 })
