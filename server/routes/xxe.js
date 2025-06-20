@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const xml2js = require('xml2js');
 const logger = require('../utils/logger');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 /**
  * @route POST /api/xxe/parse

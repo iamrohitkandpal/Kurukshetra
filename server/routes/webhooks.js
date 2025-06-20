@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDb, getMongoDb } = require('../config/dbManager');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const axios = require('axios');
 const logger = require('../utils/logger');
 const crypto = require('crypto');

@@ -5,8 +5,8 @@ const path = require('path');
 const multer = require('multer');
 const csv = require('csv-parser');
 const xml2js = require('xml2js');
-const auth = require('../middleware/auth');
-const adminAuth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
+const { admin } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 // Set up file upload

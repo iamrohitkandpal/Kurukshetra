@@ -3,7 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 /**
