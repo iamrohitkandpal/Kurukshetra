@@ -159,7 +159,17 @@ const getIpAddress = (req) => {
          'unknown';
 };
 
+// Add this to helpers.js before the exports
+const checkEnv = (required = []) => {
+  const missing = required.filter(key => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+  return true;
+};
+
 module.exports = {
+  checkEnv,
   generateRandomToken,
   generateJwtToken,
   hashPassword,
