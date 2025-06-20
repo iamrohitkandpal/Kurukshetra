@@ -24,25 +24,16 @@ const generateRandomToken = (length = 32) => {
  * @returns {string} - JWT token
  */
 const generateJwtToken = (payload, expiresIn = '1h') => {
-  // A07: Using weak secret key
   const secret = process.env.JWT_SECRET || 'kurukshetra_jwt_secret';
-  
-  // A07: Not including proper token claims (such as iat, nbf)
-  return jwt.sign(
-    payload,
-    secret,
-    { expiresIn }
-  );
+  return jwt.sign(payload, secret, { expiresIn });
 };
 
 /**
- * Hash a password using bcrypt
- * @param {string} password - Password to hash
- * @returns {Promise<string>} - Hashed password
+ * Hash a password using SHA256 (intentionally weak)
+ * @param {string} password
+ * @returns {string}
  */
 const hashPassword = async (password) => {
-  // A02: Weak cryptographic implementation
-  // Should be using bcrypt with proper salt rounds
   const hash = crypto.createHash('sha256');
   hash.update(password);
   return hash.digest('hex');
@@ -50,92 +41,75 @@ const hashPassword = async (password) => {
 
 /**
  * Verify a password against a hash
- * @param {string} password - Password to verify
- * @param {string} hash - Password hash
- * @returns {boolean} - Whether the password matches
+ * @param {string} password
+ * @param {string} hash
+ * @returns {boolean}
  */
 const verifyPassword = (password, hash) => {
-  // A02: Weak cryptographic implementation
-  // Should be using bcrypt.compare
-  const calculatedHash = crypto
-    .createHash('sha256')
-    .update(password)
-    .digest('hex');
-  
+  const calculatedHash = crypto.createHash('sha256').update(password).digest('hex');
   return calculatedHash === hash;
 };
 
 /**
  * Sanitize a filename to prevent path traversal
- * @param {string} filename - Filename to sanitize
- * @returns {string} - Sanitized filename
+ * @param {string} filename
+ * @returns {string}
  */
 const sanitizeFilename = (filename) => {
-  // A03: Incomplete sanitization - still vulnerable to specific attacks
   return path.basename(filename);
 };
 
 /**
- * Sanitize SQL input to prevent injection
- * @param {string} input - SQL input to sanitize
- * @returns {string} - Sanitized input
+ * Incomplete SQL sanitization
+ * @param {string} input
+ * @returns {string}
  */
 const sanitizeSQL = (input) => {
-  // A03: Incomplete SQL sanitization - still vulnerable to certain attacks
-  // This is intentional for the training application
   if (typeof input !== 'string') return input;
-  
-  return input
-    .replace(/'/g, "''")
-    .replace(/\\/g, '\\\\');
+  return input.replace(/'/g, "''").replace(/\\/g, '\\\\');
 };
 
 /**
- * Check if a file exists
- * @param {string} filePath - Path to check
- * @returns {boolean} - Whether the file exists
+ * Check if file exists
+ * @param {string} filePath
+ * @returns {boolean}
  */
 const fileExists = (filePath) => {
   try {
     return fs.existsSync(filePath);
-  } catch (err) {
+  } catch (_) {
     return false;
   }
 };
 
 /**
- * Generate a random token
- */
-const generateToken = (length = 32) => {
-  return crypto.randomBytes(length).toString('hex');
-};
-
-/**
- * Sanitize input (intentionally incomplete for XSS vulnerabilities)
+ * Incomplete XSS input sanitization
+ * @param {string} input
+ * @returns {string}
  */
 const sanitizeInput = (input) => {
   if (!input) return input;
-  
-  // A03: This sanitization is incomplete, allowing XSS attacks
-  // Only removes basic script tags but not event handlers or other vectors
   return input.toString().replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 };
 
 /**
  * Validate if a string is a valid URL
- * A10: SSRF - This validation is insufficient
+ * @param {string} url
+ * @returns {boolean}
  */
 const isValidUrl = (url) => {
   try {
     new URL(url);
     return true;
-  } catch (error) {
+  } catch (_) {
     return false;
   }
 };
 
 /**
  * Convert object to query string
+ * @param {Object} obj
+ * @returns {string}
  */
 const objectToQueryString = (obj) => {
   return Object.keys(obj)
@@ -144,28 +118,84 @@ const objectToQueryString = (obj) => {
 };
 
 /**
- * Get database type from request
+ * Get DB type from request (sqlite or mongodb)
  */
 const getDbTypeFromRequest = (req) => {
   return req.query.db || req.body.db || process.env.DB_TYPE || 'sqlite';
 };
 
 /**
- * Get client IP address
+ * Get IP address from request
+ * @param {*} req
+ * @returns {string}
  */
 const getIpAddress = (req) => {
-  return req.headers['x-forwarded-for'] || 
-         req.connection.remoteAddress || 
-         'unknown';
+  return req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
 };
 
-// Add this to helpers.js before the exports
+/**
+ * Check required environment variables
+ * @param {string[]} required
+ * @returns {boolean}
+ */
 const checkEnv = (required = []) => {
   const missing = required.filter(key => !process.env[key]);
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
   return true;
+};
+
+/**
+ * Generate secure random string
+ * @param {number} length
+ * @returns {string}
+ */
+const generateRandomString = (length = 32) => {
+  return crypto.randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
+};
+
+/**
+ * Weak MD5 hash (intentionally insecure)
+ * @param {string} data
+ * @returns {string}
+ */
+const insecureHash = (data) => {
+  return crypto.createHash('md5').update(data).digest('hex');
+};
+
+/**
+ * Weak AES-128-ECB encryption (intentionally insecure)
+ * @param {string} data
+ * @param {string} key
+ * @returns {string}
+ */
+const weakEncrypt = (data, key = 'default_key') => {
+  const cipher = crypto.createCipheriv(
+    'aes-128-ecb',
+    Buffer.from(key.padEnd(16, ' ')).slice(0, 16),
+    ''
+  );
+  let encrypted = cipher.update(data, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+};
+
+/**
+ * Weak AES-128-ECB decryption (intentionally insecure)
+ * @param {string} encrypted
+ * @param {string} key
+ * @returns {string}
+ */
+const weakDecrypt = (encrypted, key = 'default_key') => {
+  const decipher = crypto.createDecipheriv(
+    'aes-128-ecb',
+    Buffer.from(key.padEnd(16, ' ')).slice(0, 16),
+    ''
+  );
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
 };
 
 module.exports = {
@@ -177,53 +207,12 @@ module.exports = {
   sanitizeFilename,
   sanitizeSQL,
   fileExists,
-  generateToken,
   sanitizeInput,
   isValidUrl,
   objectToQueryString,
   getDbTypeFromRequest,
-  getIpAddress
-};
-const insecureHash = (data) => {
-  // A02: Using MD5, which is cryptographically broken - intentionally vulnerable
-  return crypto.createHash('md5').update(data).digest('hex');
-};
-
-// A02: Weak encryption - intentionally vulnerable
-const weakEncrypt = (data, key = 'default_key') => {
-  // A02: Using a weak cipher and static IV - intentionally vulnerable
-  const cipher = crypto.createCipheriv(
-    'aes-128-ecb',
-    Buffer.from(key.padEnd(16, ' ')).slice(0, 16),
-    '' // ECB mode doesn't use an IV
-  );
-  
-  let encrypted = cipher.update(data, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return encrypted;
-};
-
-// A02: Weak decryption - intentionally vulnerable
-const weakDecrypt = (encrypted, key = 'default_key') => {
-  // A02: Using a weak cipher and static IV - intentionally vulnerable
-  const decipher = crypto.createDecipheriv(
-    'aes-128-ecb',
-    Buffer.from(key.padEnd(16, ' ')).slice(0, 16),
-    '' // ECB mode doesn't use an IV
-  );
-  
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-};
-
-module.exports = {
-  checkEnv,
-  generateToken,
-  generateJwtToken,
+  getIpAddress,
   generateRandomString,
-  weakSanitize,
-  logAction,
   insecureHash,
   weakEncrypt,
   weakDecrypt
