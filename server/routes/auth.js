@@ -18,9 +18,34 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Please enter all fields' });
     }
 
-    // Check if user exists
-    let user;
-    if (dbType === 'mongodb') {
+    if (dbType === 'sqlite') {
+      // SQLite
+      const db = require('../config/db');
+      
+      // A03: SQL Injection vulnerability - Using parameterized query
+      const existingUser = await db.get(
+        'SELECT id FROM users WHERE email = ? OR username = ?', 
+        [email, username]
+      );
+
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      // A03: SQL Injection vulnerability - Using parameterized query
+      await db.run(
+        `INSERT INTO users (username, email, password, role, created_at) 
+         VALUES (?, ?, ?, 'user', datetime('now'))`,
+        [username, email, hashedPassword]
+      );
+      
+      return res.status(201).json({ message: 'User registered successfully' });
+    } else {
+      // MongoDB
       const User = require('../models/mongo/User');
       user = await User.findOne({ $or: [{ email }, { username }] });
 
@@ -43,29 +68,6 @@ router.post('/register', async (req, res) => {
       await newUser.save();
       
       // A04: Insecure Design - Role hardcoded, no email verification
-      return res.status(201).json({ message: 'User registered successfully' });
-    } else {
-      // SQLite
-      // A03: SQL Injection vulnerability - Using string concatenation
-      const query = `SELECT id FROM users WHERE email = '${email}' OR username = '${username}'`;
-      const existingUser = await db.get(query);
-
-      if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
-      }
-
-      // Hash password
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      // A03: SQL Injection vulnerability - Using string concatenation
-      const insertQuery = `
-        INSERT INTO users (username, email, password, role, created_at) 
-        VALUES ('${username}', '${email}', '${hashedPassword}', 'user', datetime('now'))
-      `;
-      
-      await db.run(insertQuery);
-      
       return res.status(201).json({ message: 'User registered successfully' });
     }
   } catch (err) {

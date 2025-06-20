@@ -39,6 +39,12 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(publicPath));
 }
 
+// Create data directory if it doesn't exist
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
 // Welcome route
 app.get('/', (req, res) => {
   res.json({

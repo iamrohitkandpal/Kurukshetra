@@ -3,29 +3,31 @@ const { open } = require('sqlite');
 const path = require('path');
 const logger = require('../utils/logger');
 
-// SQLite database connection
 let db;
 
-/**
- * Initialize the SQLite database connection
- */
 const initializeDb = async () => {
   try {
-    db = await open({
-      filename: path.join(__dirname, '../data/kurukshetra.db'),
-      driver: sqlite3.Database
-    });
-    
-    logger.info('SQLite database connection established');
-    
-    // Ensure database is set up with tables
-    await createTables();
-    
+    if (!db) {
+      db = await open({
+        filename: process.env.DB_PATH || path.join(__dirname, '../data/kurukshetra.sqlite3'),
+        driver: sqlite3.Database
+      });
+      
+      logger.info('SQLite database connection established');
+      await createTables();
+    }
     return db;
   } catch (error) {
     logger.error('SQLite database connection error:', error);
     throw error;
   }
+};
+
+const getDb = async () => {
+  if (!db) {
+    await initializeDb();
+  }
+  return db;
 };
 
 /**
@@ -163,35 +165,14 @@ const createTables = async () => {
   }
 };
 
+// Update the module exports
 module.exports = {
   initializeDb,
+  getDb,
   get: async (query, params = []) => {
+    const database = await getDb();
     try {
-      return await db.get(query, params);
-    } catch (error) {
-      logger.error('SQLite query error:', error, query);
-      throw error;
-    }
-  },
-  all: async (query, params = []) => {
-    try {
-      return await db.all(query, params);
-    } catch (error) {
-      logger.error('SQLite query error:', error, query);
-      throw error;
-    }
-  },
-  run: async (query, params = []) => {
-    try {
-      return await db.run(query, params);
-    } catch (error) {
-      logger.error('SQLite query error:', error, query);
-      throw error;
-    }
-  },
-  exec: async (query) => {
-    try {
-      return await db.exec(query);
+      return await database.get(query, params);
     } catch (error) {
       logger.error('SQLite query error:', error, query);
       throw error;
