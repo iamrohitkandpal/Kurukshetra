@@ -47,6 +47,11 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Initialize DB and Routes
 initializeDb()
   .then(async () => {
@@ -79,11 +84,6 @@ initializeDb()
     app.use('/api/config', require('./routes/config'));
     app.use('/api/nosql', require('./routes/nosql'));
     app.use('/api/backup', require('./routes/backup'));
-
-    // Health check
-    app.get('/api/health', (req, res) => {
-      res.json({ status: 'ok' });
-    });
 
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);

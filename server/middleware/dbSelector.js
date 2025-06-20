@@ -1,4 +1,4 @@
-const { getActiveDb, getDb, getMongoDb } = require('../config/dbManager');
+const { getCurrentDbType, getDb, getMongoDb } = require('../config/dbManager');
 const logger = require('../utils/logger');
 
 /**
@@ -6,8 +6,8 @@ const logger = require('../utils/logger');
  */
 const dbSelector = (req, res, next) => {
   try {
-    // Priority: 1. Query param 2. Body param 3. Current active DB
-    req.dbType = req.query.db || req.body.db || getActiveDb();
+    // Use getCurrentDbType instead of getActiveDb
+    req.dbType = req.query.db || req.body.db || getCurrentDbType();
     
     // Validate database type
     if (req.dbType !== 'sqlite' && req.dbType !== 'mongodb') {

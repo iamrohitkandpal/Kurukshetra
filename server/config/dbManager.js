@@ -101,10 +101,16 @@ const setCurrentDbType = async (type) => {
   return { success: true, message: `Switched to ${type}` };
 };
 
+// Add this to the existing exports
+const getActiveDb = () => {
+  return currentDbType;
+};
+
 module.exports = {
   initializeConnections,
   getDb,
   switchDbType,
   getCurrentDbType,
-  setCurrentDbType
+  setCurrentDbType,
+  getActiveDb // Add this export
 };
