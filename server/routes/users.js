@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDb, getMongoDb } = require('../config/dbManager');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const { generateToken } = require('../utils/helpers');
 const User = require('../models/mongo/User');
 const logger = require('../utils/logger');

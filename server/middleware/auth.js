@@ -92,8 +92,10 @@ const apiKey = async (req, res, next) => {
   }
 };
 
+// Keep the current export in auth.js
 module.exports = {
   auth,
   admin,
   apiKey
 };
+
