@@ -1,2 +1,0 @@
-This is a sample file for testing purposes.
-It contains sensitive information like API_KEY=secret1234
