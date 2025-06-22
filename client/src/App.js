@@ -10,7 +10,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { DatabaseProvider } from "./context/DatabaseContext";
 
 // Routing protection
-import { PrivateRoute } from "./components/auth/PrivateRoute";
+import PrivateRoute from "./components/auth/PrivateRoute";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { ROLES } from "./utils/authUtils";
 
