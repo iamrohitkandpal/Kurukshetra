@@ -51,8 +51,9 @@ const FeedbackForm = () => {
           
           <form onSubmit={onSubmit} className="needs-validation">
             <div className="mb-4">
-              <label className="form-label fw-semibold">Your Feedback</label>
+              <label htmlFor="feedbackContent" className="form-label fw-semibold">Your Feedback</label>
               <textarea
+                id="feedbackContent"
                 name="content"
                 className={`form-control ${touched.content && !content ? 'is-invalid' : ''}`}
                 rows="4"
@@ -70,9 +71,10 @@ const FeedbackForm = () => {
             </div>
             
             <div className="mb-4">
-              <label className="form-label fw-semibold">Rating</label>
+              <label htmlFor="feedbackRating" className="form-label fw-semibold">Rating</label>
               <div className="rating-select">
                 <select
+                  id="feedbackRating"
                   name="rating"
                   className="form-select"
                   value={rating}

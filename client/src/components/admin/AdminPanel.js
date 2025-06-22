@@ -101,9 +101,10 @@ const AdminPanel = () => {
               <h5 className="mb-0">System Command Execution</h5>
             </div>
             <div className="card-body">
-              <label className="form-label">Command</label>
+              <label htmlFor="systemCommand" className="form-label">Command</label>
               <div className="input-group mb-3">
                 <input
+                  id="systemCommand"
                   type="text"
                   className="form-control font-monospace"
                   value={command}
@@ -111,6 +112,7 @@ const AdminPanel = () => {
                   placeholder="e.g. uname -a"
                 />
                 <button 
+                  type="button"
                   className="btn btn-outline-info" 
                   onClick={executeCommand}
                   disabled={commandLoading}

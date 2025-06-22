@@ -50,9 +50,10 @@ const PasswordReset = () => {
               {step === 1 && (
                 <form onSubmit={requestReset}>
                   <div className="mb-3">
-                    <label className="form-label">Email Address</label>
+                    <label htmlFor="resetEmail" className="form-label">Email Address</label>
                     <input
                       type="email"
+                      id="resetEmail"
                       className="form-control"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -68,9 +69,10 @@ const PasswordReset = () => {
               {step === 2 && (
                 <form onSubmit={confirmReset}>
                   <div className="mb-3">
-                    <label className="form-label">Reset Token</label>
+                    <label htmlFor="resetToken" className="form-label">Reset Token</label>
                     <input
                       type="text"
+                      id="resetToken"
                       className="form-control"
                       value={token}
                       onChange={(e) => setToken(e.target.value)}
@@ -78,9 +80,10 @@ const PasswordReset = () => {
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="form-label">New Password</label>
+                    <label htmlFor="newPassword" className="form-label">New Password</label>
                     <input
                       type="password"
+                      id="newPassword"
                       className="form-control"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}

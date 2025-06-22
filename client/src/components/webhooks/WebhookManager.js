@@ -251,10 +251,10 @@ const WebhookManager = () => {
             </div>
             <div className="card-body">
               <div className="mb-3">
-                <label htmlFor="updateUrl" className="form-label">Update Server URL</label>
+                <label htmlFor="updateServerUrl" className="form-label">Update Server URL</label>
                 <input
                   type="text"
-                  id="updateUrl"
+                  id="updateServerUrl"
                   className="form-control"
                   value={updateUrl}
                   onChange={(e) => setUpdateUrl(e.target.value)}
