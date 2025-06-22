@@ -2,14 +2,22 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import AuthContext from '../../context/AuthContext';
+import Toast from '../common/Toast';
 
 const ProductDetails = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  const showToast = (message, type) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -33,26 +41,58 @@ const ProductDetails = () => {
       return;
     }
 
+    setDeleting(true);
     try {
-      // A01: Broken Access Control - Any authenticated user can delete
+      // A01: Still vulnerable - No proper authorization check
       await axios.delete(`/api/products/${id}`);
+      showToast('Product deleted successfully', 'success');
       navigate('/products');
     } catch (err) {
-      setError('Failed to delete product');
-      console.error(err);
+      const errorMessage = err.response?.data?.error || 'Failed to delete product';
+      showToast(errorMessage, 'error');
+      setError(errorMessage);
+    } finally {
+      setDeleting(false);
     }
   };
 
   if (loading) {
-    return <div className="text-center my-5">Loading product details...</div>;
+    return (
+      <div className="container py-5">
+        <div className="card">
+          <div className="card-body">
+            <div className="row">
+              <div className="col-md-4">
+                <div className="skeleton-image"></div>
+              </div>
+              <div className="col-md-8">
+                <div className="skeleton-title"></div>
+                <div className="skeleton-text"></div>
+                <div className="skeleton-text"></div>
+                <div className="skeleton-price"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="alert alert-danger">{error}</div>;
-  }
-
-  if (!product) {
-    return <div className="alert alert-warning">Product not found</div>;
+    return (
+      <div className="container py-5">
+        <div className="alert alert-danger">
+          <h4>Error Loading Product</h4>
+          <p>{error}</p>
+          <button 
+            className="btn btn-outline-danger"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -107,8 +147,19 @@ const ProductDetails = () => {
                     <Link to={`/products/edit/${product.id}`} className="btn btn-secondary me-2">
                       Edit
                     </Link>
-                    <button onClick={handleDelete} className="btn btn-danger">
-                      Delete
+                    <button 
+                      onClick={handleDelete} 
+                      className="btn btn-danger"
+                      disabled={deleting}
+                    >
+                      {deleting ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
                     </button>
                   </>
                 )}
@@ -117,6 +168,14 @@ const ProductDetails = () => {
           </div>
         </div>
       </div>
+
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
     </div>
   );
 };
