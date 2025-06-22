@@ -1,21 +1,46 @@
-/* Bootstrap overrides and custom styling */
+/* Theme Colors - Dark Mode (Default) */
 :root {
-  --primary: #007AFF;
-  --success: #34C759;
-  --warning: #FF9500;
-  --danger: #FF3B30;
-  --light-bg: #F2F2F7;
+  --color-bg-primary: #0a192f;      /* Deep Space - Main background */
+  --color-bg-secondary: #112240;    /* Navy - Secondary background */
+  --color-bg-accent: #1d4ed8;       /* Royal Blue - Accent elements */
+  --color-bg-card: #1a2332;         /* Card background */
+  --color-bg-overlay: rgba(10, 25, 47, 0.95); /* Overlay background */
+  
+  /* Brand Colors */
+  --color-primary: #00ff9f;         /* Neon Green - Primary actions */
+  --color-secondary: #7000ff;       /* Electric Purple - Secondary actions */
+  --color-accent: #00ffd5;          /* Cyber Turquoise - Accents */
+  
+  /* Text Colors */
+  --text-primary: #edf2f7;   /* Primary Text */
+  --text-secondary: #a8b2d1; /* Secondary Text */
+  --text-accent: #00ff9f;    /* Accent Text */
+  --text-muted: #8892b0;     /* Muted Text */
+  
+  /* Status Colors */
+  --color-success: #00ffd5;         /* Success states */
+  --color-error: #ff3e3e;           /* Error states */
+  --color-warning: #ffb300;         /* Warning states */
+  --color-info: #00c3ff;            /* Info states */
 }
 
+/* Global Styles */
 body {
-  background-color: var(--light-bg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  -webkit-font-smoothing: antialiased;
+  background-color: var(--color-bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
 }
 
 .app-title {
   font-weight: 700;
-  background: linear-gradient(135deg, #000000 0%, #424242 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: titleFade 2s ease-in-out;
@@ -38,6 +63,165 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Custom Button Styles */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-bg-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-success);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 255, 159, 0.2);
+}
+
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-accent);
+  transform: translateY(-1px);
+}
+
+/* Card Styles */
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.5rem;
+}
+
+/* Form Controls */
+.form-control {
+  background: var(--color-bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 159, 0.2);
+  color: var(--text-primary);
+}
+
+/* Tables */
+.table {
+  color: var(--text-primary);
+}
+
+.table thead th {
+  background: var(--bg-secondary);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-accent);
+}
+
+.table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Navigation */
+.navbar {
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar-brand {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--text-accent);
+}
+
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  color: var(--text-primary);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes titleFade {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Special Effects */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-bg {
+  background: rgba(26, 35, 50, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .toast-notification {
@@ -107,5 +291,160 @@ body {
   border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
+}
+
+/* App Layout */
+.app-wrapper {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.content-wrapper {
+  flex: 1;
+  padding: 2rem;
+  background: var(--color-bg-primary);
+}
+
+/* Sidebar Styles */
+.sidebar {
+  position: fixed;
+  width: 260px;
+  height: 100vh;
+  background: var(--color-bg-overlay);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.sidebar-menu {
+  padding: 1rem 0;
+  flex: 1;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-left-color: var(--color-primary);
+}
+
+.sidebar-item.active {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+}
+
+.sidebar-icon {
+  margin-right: 1rem;
+  font-size: 1.25rem;
+}
+
+.sidebar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Admin Panel Styles */
+.system-output {
+  max-height: 300px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border-radius: 8px;
+}
+
+.avatar-text {
+  width: 32px;
+  height: 32px;
+}
+
+.table-header-sticky {
+  top: 56px;
+}
+
+/* Dashboard Styles */
+.stat-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+/* File Upload Styles */
+.upload-preview {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.upload-zone {
+  border: 2px dashed var(--color-bg-accent);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.upload-zone:hover {
+  border-color: var(--color-primary);
+}
+
+/* Product Details Styles */
+.product-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-info {
+  padding: 1.5rem;
+}
+
+.product-price {
+  font-size: 2rem;
+  color: var(--color-accent);
+}
+
+/* Sensitive Data Manager Styles */
+.data-section {
+  border: 1px solid var(--color-bg-accent);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.export-button {
+  background: var(--color-bg-accent);
+  color: var(--text-primary);
 }

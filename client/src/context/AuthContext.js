@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import jwtUtils from '../utils/jwtUtils';
 
 const AuthContext = createContext({
   user: null,
@@ -31,14 +32,16 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        if (token) {
-          // A07: Insecure token handling - No server verification
-          const payload = JSON.parse(atob(token.split('.')[1]));
+        if (token && jwtUtils.validateToken(token)) {
+          const payload = jwtUtils.getTokenPayload(token);
           setUser({
             userId: payload.userId,
             username: payload.username,
             role: payload.role
           });
+        } else if (token) {
+          // Token is invalid or expired
+          setToken(null);
         }
       } catch (error) {
         console.error('Error loading user:', error);
