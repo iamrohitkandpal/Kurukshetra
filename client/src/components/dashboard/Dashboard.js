@@ -29,27 +29,78 @@ const Dashboard = () => {
 
     fetchProgress();
   }, [user]);
-
   if (loading) {
     return (
-      <div className="container mt-5 text-center">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+      <div className="container mt-5">
+        <div className="row">
+          <div className="col-md-12">
+            <div className="card glass-card">
+              <div className="card-body">
+                <div className="skeleton-loader h3 mb-4"></div>
+                <div className="skeleton-loader text mb-3"></div>
+                <div className="skeleton-loader text"></div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div className="card glass-card mt-4">
+              <div className="card-body">
+                <div className="skeleton-loader h4"></div>
+                <div className="skeleton-loader text mt-3"></div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div className="card glass-card mt-4">
+              <div className="card-body">
+                <div className="skeleton-loader h4"></div>
+                <div className="skeleton-loader text mt-3"></div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div className="card glass-card mt-4">
+              <div className="card-body">
+                <div className="skeleton-loader h4"></div>
+                <div className="skeleton-loader text mt-3"></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="mt-2">Loading your dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mt-4">
-      <div className="row mb-4">
-        <div className="col-md-12">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h2>Welcome, {user?.username || 'User'}!</h2>
-              <p className="lead">Role: <span className="badge bg-info">{user?.role || 'user'}</span></p>
-              <p>This is your personal dashboard where you can track your progress and access various features.</p>
+    <div className="dashboard-container">
+      <div className="dashboard-header glass-card">
+        <div className="user-welcome">
+          <h2 className="gradient-text">Welcome, {user?.username || 'User'}!</h2>
+          <div className="role-badge">
+            <span className="badge bg-gradient">{user?.role || 'user'}</span>
+            <span className="security-level">Security Clearance: Level {user?.role === 'admin' ? '3' : '1'}</span>
+          </div>
+        </div>
+        <div className="quick-stats">
+          <div className="stat-card">
+            <span className="stat-icon">🎯</span>
+            <div className="stat-info">
+              <h4>{progress?.length || 0}</h4>
+              <span>Exploits Found</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">⚠️</span>
+            <div className="stat-info">
+              <h4>High</h4>
+              <span>Risk Level</span>
+            </div>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">🛡️</span>
+            <div className="stat-info">
+              <h4>Active</h4>
+              <span>Security Mode</span>
             </div>
           </div>
         </div>

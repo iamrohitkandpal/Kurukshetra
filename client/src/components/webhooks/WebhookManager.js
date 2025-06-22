@@ -12,8 +12,13 @@ const WebhookManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState('user.created');
 
-  const availableEvents = ['user.created', 'user.updated', 'order.created', 'product.updated'];
+  const availableEvents = [
+    { type: 'user', events: ['user.created', 'user.updated', 'user.deleted'] },
+    { type: 'product', events: ['product.created', 'product.updated', 'product.deleted'] },
+    { type: 'feedback', events: ['feedback.created'] }
+  ];
 
   useEffect(() => {
     fetchWebhooks();
@@ -21,10 +26,10 @@ const WebhookManager = () => {
 
   const fetchWebhooks = async () => {
     try {
-      const res = await axios.get('/api/webhooks');
-      setWebhooks(res.data);
+      const response = await axios.get('/api/webhooks');
+      setWebhooks(response.data);
     } catch (err) {
-      setError('Failed to load webhooks');
+      setError(err.response?.data?.error || 'Failed to fetch webhooks');
     } finally {
       setLoading(false);
     }
@@ -33,144 +38,197 @@ const WebhookManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/webhooks', newWebhook);
-      setSuccess('Webhook created successfully');
-      fetchWebhooks();
+      const response = await axios.post('/api/webhooks', newWebhook);
+      setWebhooks([...webhooks, response.data]);
       setNewWebhook({ name: '', url: '', events: [], secret: '' });
+      setSuccess('Webhook created successfully');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create webhook');
     }
   };
 
-  const testWebhook = async (id) => {
+  const handleTestWebhook = async (id) => {
     try {
-      // A10: SSRF vulnerability in the API
-      await axios.post(`/api/webhooks/test/${id}`, {
-        payload: { event: 'test', timestamp: new Date().toISOString() }
-      });
+      await axios.post(`/api/webhooks/test/${id}`);
       setSuccess('Webhook tested successfully');
     } catch (err) {
-      setError('Webhook test failed');
+      setError(err.response?.data?.error || 'Failed to test webhook');
     }
   };
 
-  const deleteWebhook = async (id) => {
+  const handleDeleteWebhook = async (id) => {
     try {
-      // A01: IDOR vulnerability in the API
       await axios.delete(`/api/webhooks/${id}`);
+      setWebhooks(webhooks.filter(webhook => webhook.id !== id));
       setSuccess('Webhook deleted successfully');
-      fetchWebhooks();
     } catch (err) {
-      setError('Failed to delete webhook');
+      setError(err.response?.data?.error || 'Failed to delete webhook');
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="text-center p-5"><div className="spinner-border"></div></div>;
 
   return (
-    <div className="card mb-4">
-      <div className="card-header">
-        <h3>Webhook Management</h3>
-      </div>
-      <div className="card-body">
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
+    <div className="container-fluid px-4">
+      <h2 className="my-4">Webhook Manager</h2>
 
-        <form onSubmit={handleSubmit} className="mb-4">
-          <div className="mb-3">
-            <label className="form-label">Webhook Name</label>
-            <input
-              type="text"
-              className="form-control"
-              value={newWebhook.name}
-              onChange={(e) => setNewWebhook({...newWebhook, name: e.target.value})}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label className="form-label">URL</label>
-            <input
-              type="url"
-              className="form-control"
-              value={newWebhook.url}
-              onChange={(e) => setNewWebhook({...newWebhook, url: e.target.value})}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label className="form-label">Events</label>
-            <div>
-              {availableEvents.map(event => (
-                <div key={event} className="form-check">
+      {error && (
+        <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          {error}
+          <button type="button" className="btn-close" onClick={() => setError('')}></button>
+        </div>
+      )}
+      {success && (
+        <div className="alert alert-success alert-dismissible fade show" role="alert">
+          {success}
+          <button type="button" className="btn-close" onClick={() => setSuccess('')}></button>
+        </div>
+      )}
+
+      <div className="row g-4">
+        <div className="col-lg-4">
+          <div className="card shadow-sm">
+            <div className="card-header bg-dark text-white">
+              <h3 className="h5 mb-0">Create New Webhook</h3>
+            </div>
+            <div className="card-body">
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label className="form-label">Name</label>
                   <input
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={newWebhook.events.includes(event)}
-                    onChange={(e) => {
-                      const events = e.target.checked 
-                        ? [...newWebhook.events, event]
-                        : newWebhook.events.filter(e => e !== event);
-                      setNewWebhook({...newWebhook, events});
-                    }}
+                    type="text"
+                    className="form-control"
+                    value={newWebhook.name}
+                    onChange={e => setNewWebhook({...newWebhook, name: e.target.value})}
+                    placeholder="Webhook name"
+                    required
                   />
-                  <label className="form-check-label">{event}</label>
                 </div>
-              ))}
+
+                <div className="mb-3">
+                  <label className="form-label">URL</label>
+                  <input
+                    type="url"
+                    className="form-control"
+                    value={newWebhook.url}
+                    onChange={e => setNewWebhook({...newWebhook, url: e.target.value})}
+                    placeholder="https://your-endpoint.com/webhook"
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Secret Key</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newWebhook.secret}
+                    onChange={e => setNewWebhook({...newWebhook, secret: e.target.value})}
+                    placeholder="Webhook secret key"
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Events</label>
+                  {availableEvents.map(group => (
+                    <div key={group.type} className="mb-2">
+                      <small className="text-muted text-uppercase">{group.type} Events</small>
+                      <div className="d-flex flex-wrap gap-2">
+                        {group.events.map(event => (
+                          <div key={event} className="form-check">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id={`event-${event}`}
+                              checked={newWebhook.events.includes(event)}
+                              onChange={e => {
+                                const events = e.target.checked
+                                  ? [...newWebhook.events, event]
+                                  : newWebhook.events.filter(e => e !== event);
+                                setNewWebhook({...newWebhook, events});
+                              }}
+                            />
+                            <label className="form-check-label" htmlFor={`event-${event}`}>
+                              {event}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button type="submit" className="btn btn-primary w-100">
+                  Create Webhook
+                </button>
+              </form>
             </div>
           </div>
-          <div className="mb-3">
-            <label className="form-label">Secret (Optional)</label>
-            <input
-              type="text"
-              className="form-control"
-              value={newWebhook.secret}
-              onChange={(e) => setNewWebhook({...newWebhook, secret: e.target.value})}
-            />
-          </div>
-          <button type="submit" className="btn btn-primary">Create Webhook</button>
-        </form>
+        </div>
 
-        <h4>Active Webhooks</h4>
-        <div className="table-responsive">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>URL</th>
-                <th>Events</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {webhooks.map((webhook) => (
-                <tr key={webhook.id}>
-                  <td>{webhook.name}</td>
-                  <td>{webhook.url}</td>
-                  <td>
-                    {webhook.events.map(event => (
-                      <span key={event} className="badge bg-secondary me-1">
-                        {event}
-                      </span>
+        <div className="col-lg-8">
+          <div className="card shadow-sm">
+            <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+              <h3 className="h5 mb-0">Active Webhooks</h3>
+              <span className="badge bg-primary">{webhooks.length} Total</span>
+            </div>
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th className="px-4">Name</th>
+                      <th>URL</th>
+                      <th>Events</th>
+                      <th className="text-end px-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {webhooks.map(webhook => (
+                      <tr key={webhook.id}>
+                        <td className="px-4">{webhook.name}</td>
+                        <td className="text-truncate" style={{maxWidth: '200px'}}>
+                          <code>{webhook.url}</code>
+                        </td>
+                        <td>
+                          <div className="d-flex flex-wrap gap-1">
+                            {webhook.events.map(event => (
+                              <span key={event} className="badge bg-info">
+                                {event}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="text-end px-4">
+                          <div className="btn-group">
+                            <button
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => handleTestWebhook(webhook.id)}
+                            >
+                              Test
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => handleDeleteWebhook(webhook.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-primary me-1"
-                      onClick={() => testWebhook(webhook.id)}
-                    >
-                      Test
-                    </button>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => deleteWebhook(webhook.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {webhooks.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="text-center py-4 text-muted">
+                          No webhooks configured yet
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
