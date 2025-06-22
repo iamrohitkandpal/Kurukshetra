@@ -1,237 +1,134 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
 const { auth } = require('../middleware/auth');
-const { sanitizeInput } = require('../utils/helpers');
-const logger = require('../utils/logger');
-const mongoose = require('mongoose');
+const dbManager = require('../config/dbManager');
 
-// @route   GET api/products
-// @desc    Get all products with optional search
-// @access  Public
+// A03:2021 - Injection: Vulnerable product listing with no input sanitization
 router.get('/', async (req, res) => {
   try {
+    const db = dbManager.getConnection();
     const { search, category } = req.query;
-    const dbType = req.dbType;
     
-    if (dbType === 'mongodb') {
-      // MongoDB with NoSQL injection vulnerability
-      let query = {};
-
-      if (search) {
-        // A03: NoSQL Injection vulnerability
-        // Special MongoDB operators like $where in the search term can lead to injection
-        try {
-          // Attempt to parse JSON search term - creates NoSQL injection vulnerability
-          if (search.includes('{') && search.includes('}')) {
-            const parsedSearch = JSON.parse(search);
-            query = parsedSearch;
-          } else {
-            // Regular search
-            query = { 
-              $or: [
-                { name: new RegExp(search, 'i') },
-                { description: new RegExp(search, 'i') }
-              ]
-            };
-          }
-        } catch (err) {
-          // If parsing fails, use a simple regex search
-          query = { 
-            $or: [
-              { name: new RegExp(search, 'i') },
-              { description: new RegExp(search, 'i') }
-            ]
-          };
-        }
-      }
-
-      if (category) {
-        query.category = category;
-      }
-
-      const Product = mongoose.model('Product', new mongoose.Schema({
-        name: String,
-        description: String,
-        price: Number,
-        category: String,
-        stock: Number,
-        image_url: String,
-        created_at: Date
-      }));
-
-      const products = await Product.find(query).sort({ created_at: -1 });
+    if (dbManager.getCurrentDb() === 'sqlite') {
+      // Intentionally vulnerable to SQL injection
+      const query = `
+        SELECT * FROM Products 
+        WHERE name LIKE '%${search || ''}%'
+        ${category ? `AND category = '${category}'` : ''}
+      `;
+      const products = await db.query(query, { type: db.QueryTypes.SELECT });
       return res.json(products);
     } else {
-      // SQLite with SQL injection vulnerability
-      let query = 'SELECT * FROM products';
-      
-      if (search && category) {
-        // A03: SQL Injection vulnerability - using string concatenation
-        query += ` WHERE (name LIKE '%${search}%' OR description LIKE '%${search}%') AND category = '${category}'`;
-      } else if (search) {
-        // A03: SQL Injection vulnerability - using string concatenation
-        query += ` WHERE name LIKE '%${search}%' OR description LIKE '%${search}%'`;
-      } else if (category) {
-        // A03: SQL Injection vulnerability - using string concatenation
-        query += ` WHERE category = '${category}'`;
-      }
-      
-      query += ' ORDER BY created_at DESC';
-      
-      const products = await db.all(query);
+      // Intentionally vulnerable to NoSQL injection
+      const filter = search ? { $where: `this.name.includes("${search}")` } : {};
+      if (category) filter.category = category;
+      const products = await db.models.Product.find(filter);
       return res.json(products);
     }
-  } catch (err) {
-    logger.error('Error fetching products:', err);
-    return res.status(500).json({ error: 'Server error' });
+  } catch (error) {
+    console.error('Product listing error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// @route   GET api/products/:id
-// @desc    Get product by ID
-// @access  Public
+// A03:2021 - Injection: Vulnerable product detail endpoint
 router.get('/:id', async (req, res) => {
   try {
+    const db = dbManager.getConnection();
     const { id } = req.params;
-    const dbType = req.dbType;
-    
-    if (dbType === 'mongodb') {
-      // MongoDB with NoSQL injection vulnerability
-      const Product = mongoose.model('Product');
-      let product;
-      
-      try {
-        // A03: NoSQL Injection vulnerability if id is a specially crafted object
-        if (id.includes('{') && id.includes('}')) {
-          const parsedId = JSON.parse(id);
-          product = await Product.findOne(parsedId);
-        } else {
-          product = await Product.findById(id);
-        }
-      } catch (err) {
-        logger.error('Error parsing product ID:', err);
-        return res.status(400).json({ error: 'Invalid product ID' });
-      }
 
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      
-      return res.json(product);
+    if (dbManager.getCurrentDb() === 'sqlite') {
+      // Intentionally vulnerable to SQL injection
+      const query = `SELECT * FROM Products WHERE id = ${id}`;
+      const product = await db.query(query, { type: db.QueryTypes.SELECT });
+      return res.json(product[0]);
     } else {
-      // SQLite with SQL injection vulnerability
-      // A03: SQL Injection vulnerability - using string concatenation
-      const query = `SELECT * FROM products WHERE id = '${id}'`;
-      const product = await db.get(query);
-      
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      
+      // Intentionally vulnerable to NoSQL injection
+      const product = await db.models.Product.findOne({ $where: `this._id == '${id}'` });
       return res.json(product);
     }
-  } catch (err) {
-    logger.error('Error fetching product:', err);
-    return res.status(500).json({ error: 'Server error' });
+  } catch (error) {
+    console.error('Product detail error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// @route   POST api/products
-// @desc    Create a new product
-// @access  Private
+// A03:2021 - Injection: Vulnerable product creation
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, description, price, category, stock, image_url } = req.body;
-    const dbType = req.dbType;
+    const db = dbManager.getConnection();
     
-    // A03: XSS vulnerability - inadequate sanitization
-    const sanitizedDesc = sanitizeInput(description);
-    
-    if (dbType === 'mongodb') {
-      // MongoDB
-      const Product = mongoose.model('Product');
-      
-      const product = await Product.create({
-        name,
-        description: sanitizedDesc,
-        price,
-        category,
-        stock,
-        image_url,
-        created_at: new Date()
-      });
-      
-      return res.status(201).json(product);
-    } else {
-      // SQLite with SQL injection vulnerability
-      // A03: SQL Injection vulnerability - using string concatenation
+    if (dbManager.getCurrentDb() === 'sqlite') {
+      // Intentionally vulnerable to SQL injection
+      const { name, description, price, category, stock } = req.body;
       const query = `
-        INSERT INTO products (name, description, price, category, stock, image_url, created_at)
-        VALUES ('${name}', '${sanitizedDesc}', ${price}, '${category}', ${stock}, '${image_url || ''}', datetime('now'))
+        INSERT INTO Products (name, description, price, category, stock, createdById) 
+        VALUES ('${name}', '${description}', ${price}, '${category}', ${stock}, ${req.user.userId})
       `;
-      
-      const result = await db.run(query);
-      
-      return res.status(201).json({
-        id: result.lastID,
-        name,
-        description: sanitizedDesc,
-        price,
-        category,
-        stock,
-        image_url
+      await db.query(query);
+      res.status(201).json({ message: 'Product created successfully' });
+    } else {
+      // Intentionally vulnerable to NoSQL injection via $where
+      const product = new db.models.Product({
+        ...req.body,
+        createdBy: req.user.userId
       });
+      await product.save();
+      res.status(201).json(product);
     }
-  } catch (err) {
-    logger.error('Error creating product:', err);
-    return res.status(500).json({ error: 'Server error' });
+  } catch (error) {
+    console.error('Product creation error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// @route   DELETE api/products/:id
-// @desc    Delete a product
-// @access  Private - Admin only
-router.delete('/:id', auth, async (req, res) => {
-  const { id } = req.params;
-  const dbType = req.dbType || 'sqlite';
-  
+// A03:2021 - Injection: Vulnerable product update
+router.put('/:id', auth, async (req, res) => {
   try {
-    // A01: Broken Access Control - Not properly checking admin role
-    // Intentionally missing proper authorization check
-    
-    if (dbType === 'sqlite') {
-      const db = dbManager.sqliteDb;
-      
-      const product = await db('products').where('id', id).first();
-      
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      
-      await db('products').where('id', id).del();
-      
-      logger.info(`Product deleted: ${id} by user ${req.user.userId}`);
-      
+    const db = dbManager.getConnection();
+    const { id } = req.params;
+
+    if (dbManager.getCurrentDb() === 'sqlite') {
+      // Intentionally vulnerable to SQL injection
+      const updates = Object.entries(req.body)
+        .map(([key, value]) => `${key} = '${value}'`)
+        .join(', ');
+      const query = `UPDATE Products SET ${updates} WHERE id = ${id}`;
+      await db.query(query);
+      res.json({ message: 'Product updated successfully' });
+    } else {
+      // Intentionally vulnerable to NoSQL injection
+      await db.models.Product.updateOne(
+        { $where: `this._id == '${id}'` },
+        { $set: req.body }
+      );
+      res.json({ message: 'Product updated successfully' });
+    }
+  } catch (error) {
+    console.error('Product update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// A03:2021 - Injection: Vulnerable product deletion
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const db = dbManager.getConnection();
+    const { id } = req.params;
+
+    if (dbManager.getCurrentDb() === 'sqlite') {
+      // Intentionally vulnerable to SQL injection
+      const query = `DELETE FROM Products WHERE id = ${id}`;
+      await db.query(query);
       res.json({ message: 'Product deleted successfully' });
-      
-    } else if (dbType === 'mongodb') {
-      const Product = require('mongoose').model('Product');
-      
-      const product = await Product.findByIdAndDelete(id);
-      
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      
-      logger.info(`Product deleted: ${id} by user ${req.user.userId}`);
-      
+    } else {
+      // Intentionally vulnerable to NoSQL injection
+      await db.models.Product.deleteOne({ $where: `this._id == '${id}'` });
       res.json({ message: 'Product deleted successfully' });
     }
-    
-  } catch (err) {
-    logger.error(`Error deleting product ${id}: ${err.message}`);
-    res.status(500).json({ error: 'Server error deleting product' });
+  } catch (error) {
+    console.error('Product deletion error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

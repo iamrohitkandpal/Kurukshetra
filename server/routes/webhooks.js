@@ -1,180 +1,86 @@
 const express = require('express');
 const router = express.Router();
-const { getDb, getMongoDb } = require('../config/dbManager');
-const { auth } = require('../middleware/auth');
 const axios = require('axios');
-const logger = require('../utils/logger');
-const crypto = require('crypto');
+const { auth } = require('../middleware/auth');
+const dbManager = require('../config/dbManager');
 
-/**
- * @route   GET /api/webhooks
- * @desc    Get all user webhooks
- * @access  Private
- */
-router.get('/', auth, async (req, res) => {
-  try {
-    const { dbType } = req;
-    const userId = req.user.id;
-
-    if (dbType === 'mongodb') {
-      const db = getMongoDb();
-      
-      const webhooks = await db.collection('webhooks')
-        .find({ userId })
-        .toArray();
-        
-      return res.json(webhooks);
-    } else {
-      const db = getDb();
-      
-      const webhooks = await db.all(
-        'SELECT * FROM webhooks WHERE user_id = ?',
-        [userId]
-      );
-      
-      return res.json(webhooks.map(webhook => ({
-        ...webhook,
-        events: JSON.parse(webhook.events || '[]')
-      })));
-    }
-  } catch (error) {
-    logger.error(error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-/**
- * @route   POST /api/webhooks
- * @desc    Create a webhook
- * @access  Private
- */
+// A10:2021 - SSRF: Create webhook without URL validation
 router.post('/', auth, async (req, res) => {
   try {
+    const db = dbManager.getConnection();
     const { name, url, events, secret } = req.body;
-    const { dbType } = req;
-    const userId = req.user.id;
+    
+    const webhook = await db.models.Webhook.create({
+      name,
+      url,
+      events,
+      secret,
+      userId: req.user.userId
+    });
 
-    if (!name || !url || !Array.isArray(events)) {
-      return res.status(400).json({ error: 'Please provide name, url and events' });
-    }
-
-    if (dbType === 'mongodb') {
-      const db = getMongoDb();
-      
-      const result = await db.collection('webhooks').insertOne({
-        name,
-        url, // A10: SSRF vulnerability - No validation of URL
-        events,
-        secret,
-        userId,
-        createdAt: new Date()
-      });
-      
-      return res.json({
-        id: result.insertedId,
-        name,
-        url,
-        events,
-        secret
-      });
-    } else {
-      const db = getDb();
-      
-      const query = `
-        INSERT INTO webhooks (name, url, events, secret, user_id, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
-      `;
-      
-      const result = await db.run(query, [
-        name,
-        url,
-        JSON.stringify(events),
-        secret || '',
-        userId
-      ]);
-      
-      return res.json({
-        id: result.lastID,
-        name,
-        url,
-        events,
-        secret
-      });
-    }
+    res.status(201).json(webhook);
   } catch (error) {
-    logger.error(error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message });
   }
 });
 
-/**
- * @route   POST /api/webhooks/test/:id
- * @desc    Test a webhook
- * @access  Private
- */
+// A10:2021 - SSRF: Test webhook with any URL
 router.post('/test/:id', auth, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { payload } = req.body;
-    const { dbType } = req;
-    const userId = req.user.id;
-
-    let webhook;
-
-    if (dbType === 'mongodb') {
-      const db = getMongoDb();
-      const { ObjectId } = require('mongodb');
-      
-      webhook = await db.collection('webhooks').findOne({
-        _id: new ObjectId(id),
-        userId
-      });
-    } else {
-      const db = getDb();
-      
-      webhook = await db.get(
-        'SELECT * FROM webhooks WHERE id = ? AND user_id = ?',
-        [id, userId]
-      );
-      
-      if (webhook) {
-        webhook.events = JSON.parse(webhook.events || '[]');
-      }
-    }
+    const db = dbManager.getConnection();
+    const webhook = await db.models.Webhook.findByPk(req.params.id);
 
     if (!webhook) {
       return res.status(404).json({ error: 'Webhook not found' });
     }
 
-    // Validate URL to prevent SSRF
-    const urlPattern = /^https?:\/\/([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?$/;
-    if (!urlPattern.test(webhook.url)) {
-      return res.status(400).json({ error: 'Invalid webhook URL' });
-    }
-
-    const data = {
-      ...payload,
-      webhook_id: id,
+    // A10:2021 - SSRF: No URL validation or restrictions
+    const response = await axios.post(webhook.url, {
+      event: 'test',
       timestamp: new Date().toISOString()
-    };
+    }, {
+      headers: {
+        'X-Webhook-Secret': webhook.secret
+      },
+      // A10:2021 - SSRF: Allow private/local network access
+      proxy: false,
+      timeout: 5000
+    });
 
-    let headers = { 'Content-Type': 'application/json' };
-    
-    if (webhook.secret) {
-      const signature = crypto
-        .createHmac('sha256', webhook.secret)
-        .update(JSON.stringify(data))
-        .digest('hex');
-        
-      headers['X-Webhook-Signature'] = signature;
-    }
+    // A04:2021 - Insecure Design: Store response data
+    await webhook.update({ lastResponse: response.data });
 
-    await axios.post(webhook.url, data, { headers });
-    return res.json({ success: true });
-
+    res.json({ 
+      status: 'success',
+      statusCode: response.status,
+      data: response.data
+    });
   } catch (error) {
-    logger.error(error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// A01:2021 - Broken Access Control: No ownership check
+router.get('/', auth, async (req, res) => {
+  try {
+    const db = dbManager.getConnection();
+    const webhooks = await db.models.Webhook.findAll();
+    res.json(webhooks);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// A01:2021 - Broken Access Control: Delete without verification
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const db = dbManager.getConnection();
+    await db.models.Webhook.destroy({
+      where: { id: req.params.id }
+    });
+    res.json({ message: 'Webhook deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

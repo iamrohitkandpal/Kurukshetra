@@ -1,143 +1,73 @@
 const express = require('express');
 const router = express.Router();
-const { getDb, getMongoDb } = require('../config/dbManager');
 const { auth } = require('../middleware/auth');
-const logger = require('../utils/logger');
+const dbManager = require('../config/dbManager');
 
-/**
- * @route   POST /api/feedback
- * @desc    Submit feedback
- * @access  Public
- */
-router.post('/', async (req, res) => {
+// A03:2021 - Injection: Vulnerable feedback submission
+router.post('/', auth, async (req, res) => {
   try {
+    const db = dbManager.getConnection();
     const { content, rating } = req.body;
-    const { dbType } = req;
-
-    if (!content || !rating) {
-      return res.status(400).json({ error: 'Please provide content and rating' });
-    }
-
-    // A03: XSS vulnerability - Storing unsanitized user input
-    if (dbType === 'mongodb') {
-      const db = getMongoDb();
-      
-      // Intentionally vulnerable to NoSQL injection
-      const result = await db.collection('feedback').insertOne({
-        content, // Unsanitized content
-        rating: parseInt(rating),
-        createdAt: new Date(),
-        userId: req.user ? req.user.id : null
-      });
-      
-      return res.json({ 
-        success: true,
-        feedbackId: result.insertedId
-      });
-    } else {
-      const db = getDb();
-      
-      // A03: SQL Injection vulnerability
-      const query = `
-        INSERT INTO feedback (content, rating, created_at, user_id)
-        VALUES ('${content}', ${rating}, datetime('now'), ${req.user ? req.user.id : 'NULL'})
-      `;
-      
-      const result = await db.run(query);
-      
-      return res.json({ 
-        success: true,
-        feedbackId: result.lastID
-      });
-    }
+    
+    // A03:2021 - Injection: No input validation or sanitization
+    const feedback = await db.models.Feedback.create({
+      content,
+      rating,
+      userId: req.user.userId,
+      // A03:2021 - Injection: Store raw HTML
+      html: content
+    });
+    
+    res.status(201).json(feedback);
   } catch (error) {
-    logger.error(error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Feedback submission error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-/**
- * @route   GET /api/feedback
- * @desc    Get all feedback
- * @access  Private/Admin
- */
-router.get('/', auth, async (req, res) => {
+// A03:2021 - Injection: Vulnerable feedback listing
+router.get('/', async (req, res) => {
   try {
-    const { dbType } = req;
-    
-    // A07: Missing authorization check - Should verify admin role
-    
-    if (dbType === 'mongodb') {
-      const db = getMongoDb();
-      
-      const feedback = await db.collection('feedback')
-        .find({})
-        .sort({ createdAt: -1 })
-        .toArray();
-        
-      return res.json(feedback);
-    } else {
-      const db = getDb();
-      
-      const feedback = await db.all(`
-        SELECT f.*, u.username 
-        FROM feedback f
-        LEFT JOIN users u ON f.user_id = u.id
-        ORDER BY f.created_at DESC
-      `);
-      
-      return res.json(feedback);
-    }
+    const db = dbManager.getConnection();
+    const feedback = await db.models.Feedback.findAll({
+      include: [{
+        model: db.models.User,
+        attributes: ['username']
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // A03:2021 - Injection: Return raw HTML content
+    res.json(feedback);
   } catch (error) {
-    logger.error(error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Feedback listing error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-/**
- * @route   GET /api/feedback/:id
- * @desc    Get feedback by ID
- * @access  Public
- */
+// A03:2021 - Injection: Vulnerable feedback rendering
 router.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { dbType } = req;
+    const db = dbManager.getConnection();
+    const feedback = await db.models.Feedback.findByPk(req.params.id);
     
-    if (dbType === 'mongodb') {
-      const db = getMongoDb();
-      const { ObjectId } = require('mongodb');
-      
-      // A03: XSS vulnerability - Rendering unsanitized content
-      const feedback = await db.collection('feedback').findOne({
-        _id: ObjectId(id)
-      });
-      
-      if (!feedback) {
-        return res.status(404).json({ error: 'Feedback not found' });
-      }
-      
-      return res.json(feedback);
-    } else {
-      const db = getDb();
-      
-      // A03: SQL Injection vulnerability
-      const feedback = await db.get(`
-        SELECT f.*, u.username 
-        FROM feedback f
-        LEFT JOIN users u ON f.user_id = u.id
-        WHERE f.id = ${id}
-      `);
-      
-      if (!feedback) {
-        return res.status(404).json({ error: 'Feedback not found' });
-      }
-      
-      return res.json(feedback);
+    if (!feedback) {
+      return res.status(404).json({ error: 'Feedback not found' });
     }
+
+    // A03:2021 - Injection: Render raw HTML
+    res.send(`
+      <html>
+        <body>
+          <h1>Feedback Details</h1>
+          <div>${feedback.html}</div>
+          <p>Rating: ${feedback.rating}/5</p>
+        </body>
+      </html>
+    `);
   } catch (error) {
-    logger.error(error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Feedback detail error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

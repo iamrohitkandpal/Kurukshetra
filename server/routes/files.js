@@ -1,195 +1,88 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { auth } = require('../middleware/auth');
-const upload = require('../middleware/fileUpload');
-const db = require('../config/db');
-const logger = require('../utils/logger');
+const dbManager = require('../config/dbManager');
 
-// @route   POST api/files/upload
-// @desc    Upload a file
-// @access  Private
+// A05:2021 - Security Misconfiguration: Unsafe file storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  // A08:2021 - Software and Data Integrity Failures: No filename sanitization
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  }
+});
+
+const upload = multer({ storage });
+
+// A05:2021 - Security Misconfiguration: No file type validation
 router.post('/upload', auth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    
-    const file = req.file;
-    const userId = req.user.userId;
-    const dbType = req.dbType;
-    
-    // A03: Path traversal vulnerability - no validation on file path
-    
-    if (dbType === 'mongodb') {
-      // MongoDB - Insert file details
-      const mongoose = require('mongoose');
-      const FileSchema = new mongoose.Schema({
-        user_id: mongoose.Schema.Types.ObjectId,
-        filename: String,
-        original_name: String,
-        path: String,
-        mimetype: String,
-        size: Number,
-        uploaded_at: {
-          type: Date,
-          default: Date.now
-        }
-      });
-      
-      const File = mongoose.model('File', FileSchema);
-      
-      await File.create({
-        user_id: userId,
-        filename: file.filename,
-        original_name: file.originalname,
-        path: file.path,
-        mimetype: file.mimetype,
-        size: file.size
-      });
-    } else {
-      // SQLite - Insert file details
-      // A03: SQL Injection vulnerability
-      await db.run(`
-        INSERT INTO files (user_id, filename, original_name, path, mimetype, size)
-        VALUES (${userId}, '${file.filename}', '${file.originalname}', '${file.path}', '${file.mimetype}', ${file.size})
-      `);
-    }
-    
-    logger.info(`File uploaded: ${file.filename} by user ${userId}`);
-    
-    return res.status(201).json({
-      fileName: file.filename,
-      filePath: file.path,
-      fileSize: file.size,
-      message: 'File uploaded successfully'
+
+    const db = dbManager.getConnection();
+    const file = await db.models.File.create({
+      filename: req.file.originalname,
+      path: req.file.path,
+      size: req.file.size,
+      uploadedBy: req.user.userId
     });
-  } catch (err) {
-    logger.error('File upload error:', err);
-    return res.status(500).json({ error: 'Server error' });
+
+    res.json(file);
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// @route   GET api/files
-// @desc    Get all files for the authenticated user
-// @access  Private
+// A01:2021 - Broken Access Control: Path Traversal vulnerability
+router.get('/:filename', auth, (req, res) => {
+  // A05:2021 - Security Misconfiguration: Unsafe path joining
+  const filePath = path.join(__dirname, '../../uploads', req.params.filename);
+  
+  // A08:2021 - Software and Data Integrity Failures: No path validation
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({ error: 'File not found' });
+  }
+});
+
 router.get('/', auth, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const dbType = req.dbType;
-
-    if (dbType === 'mongodb') {
-      // MongoDB
-      const mongoose = require('mongoose');
-      const File = mongoose.model('File');
-      
-      const files = await File.find({ user_id: userId }).sort({ uploaded_at: -1 });
-      return res.json(files);
-    } else {
-      // SQLite
-      // A03: SQL Injection vulnerability if userId is manipulated
-      const files = await db.all(`
-        SELECT * FROM files 
-        WHERE user_id = ${userId}
-        ORDER BY uploaded_at DESC
-      `);
-      
-      return res.json(files);
-    }
-  } catch (err) {
-    logger.error('Error fetching files:', err);
-    return res.status(500).json({ error: 'Server error' });
+    const db = dbManager.getConnection();
+    const files = await db.models.File.findAll({
+      where: { uploadedBy: req.user.userId }
+    });
+    res.json(files);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// @route   GET api/files/:filename
-// @desc    Download a file by filename
-// @access  Public - A03: Path Traversal vulnerability
-router.get('/:filename', async (req, res) => {
-  try {
-    // A03: Path Traversal vulnerability - allowing directory traversal
-    const filename = req.params.filename;
-    
-    // A03: Path Traversal vulnerability - no path validation
-    const filePath = path.join(__dirname, '../uploads', filename);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-    
-    // A03: No validation if user is authorized to access this file
-    // A03: No MIME type validation to prevent serving malicious content
-    
-    return res.sendFile(filePath);
-  } catch (err) {
-    logger.error('File download error:', err);
-    return res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// @route   DELETE api/files/:id
-// @desc    Delete a file
-// @access  Private
+// A01:2021 - Broken Access Control: No ownership verification
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user.userId;
-    const dbType = req.dbType;
+    const db = dbManager.getConnection();
+    const file = await db.models.File.findByPk(req.params.id);
     
-    // Get file details first
-    let file;
-    
-    if (dbType === 'mongodb') {
-      // MongoDB
-      const mongoose = require('mongoose');
-      const File = mongoose.model('File');
-      
-      file = await File.findOne({ _id: id, user_id: userId });
-      
-      if (!file) {
-        return res.status(404).json({ error: 'File not found' });
-      }
-      
-      // A03: Path Traversal vulnerability - file could be anywhere
-      const filePath = file.path;
-      
-      // Delete file from filesystem
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-      
-      // Delete from database
-      await File.deleteOne({ _id: id });
-    } else {
-      // SQLite
-      // A03: SQL Injection vulnerability
-      file = await db.get(`
-        SELECT * FROM files
-        WHERE id = ${id} AND user_id = ${userId}
-      `);
-      
-      if (!file) {
-        return res.status(404).json({ error: 'File not found' });
-      }
-      
-      // A03: Path Traversal vulnerability - file could be anywhere
-      const filePath = file.path;
-      
-      // Delete file from filesystem
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-      
-      // Delete from database
-      await db.run(`DELETE FROM files WHERE id = ${id}`);
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
     }
+
+    // A08:2021 - Software and Data Integrity Failures: Unsafe file deletion
+    fs.unlinkSync(file.path);
+    await file.destroy();
     
-    return res.json({ message: 'File deleted successfully' });
-  } catch (err) {
-    logger.error('File deletion error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    res.json({ message: 'File deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
