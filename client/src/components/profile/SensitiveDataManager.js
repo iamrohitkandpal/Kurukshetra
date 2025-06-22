@@ -79,27 +79,30 @@ const SensitiveDataManager = () => {
           <div className="row">
             <div className="col-md-6">
               <div className="mb-3">
-                <label className="form-label">Phone Number</label>
+                <label htmlFor="phoneNumber" className="form-label">Phone Number</label>
                 <input
                   type="tel"
+                  id="phoneNumber"
                   className="form-control"
                   value={personalData.phoneNumber}
                   onChange={(e) => setPersonalData({...personalData, phoneNumber: e.target.value})}
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">SSN</label>
+                <label htmlFor="ssn" className="form-label">SSN</label>
                 <input
                   type="text"
+                  id="ssn"
                   className="form-control"
                   value={personalData.ssn}
                   onChange={(e) => setPersonalData({...personalData, ssn: e.target.value})}
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">Date of Birth</label>
+                <label htmlFor="dob" className="form-label">Date of Birth</label>
                 <input
                   type="date"
+                  id="dob"
                   className="form-control"
                   value={personalData.dateOfBirth}
                   onChange={(e) => setPersonalData({...personalData, dateOfBirth: e.target.value})}
@@ -108,26 +111,29 @@ const SensitiveDataManager = () => {
             </div>
             <div className="col-md-6">
               <div className="mb-3">
-                <label className="form-label">Address</label>
+                <label htmlFor="address" className="form-label">Address</label>
                 <textarea
+                  id="address"
                   className="form-control"
                   value={personalData.address}
                   onChange={(e) => setPersonalData({...personalData, address: e.target.value})}
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">Bank Account</label>
+                <label htmlFor="bankAccount" className="form-label">Bank Account</label>
                 <input
                   type="text"
+                  id="bankAccount"
                   className="form-control"
                   value={personalData.bankAccount}
                   onChange={(e) => setPersonalData({...personalData, bankAccount: e.target.value})}
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">National ID</label>
+                <label htmlFor="nationalId" className="form-label">National ID</label>
                 <input
                   type="text"
+                  id="nationalId"
                   className="form-control"
                   value={personalData.nationalId}
                   onChange={(e) => setPersonalData({...personalData, nationalId: e.target.value})}
@@ -137,6 +143,7 @@ const SensitiveDataManager = () => {
           </div>
           <button type="submit" className="btn btn-primary">Update Personal Data</button>
           <button 
+            type="button"
             onClick={exportData} 
             className="btn btn-secondary ms-2"
           >

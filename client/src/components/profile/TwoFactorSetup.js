@@ -79,9 +79,10 @@ const TwoFactorSetup = ({ mfaEnabled = false }) => {
             
             <form onSubmit={verifyAndEnable}>
               <div className="mb-3">
-                <label className="form-label">Verification Code</label>
+                <label htmlFor="verificationCode" className="form-label">Verification Code</label>
                 <input
                   type="text"
+                  id="verificationCode"
                   className="form-control"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}

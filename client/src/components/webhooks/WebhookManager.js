@@ -94,9 +94,10 @@ const WebhookManager = () => {
             <div className="card-body">
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                  <label className="form-label">Name</label>
+                  <label htmlFor="webhookName" className="form-label">Name</label>
                   <input
                     type="text"
+                    id="webhookName"
                     className="form-control"
                     value={newWebhook.name}
                     onChange={e => setNewWebhook({...newWebhook, name: e.target.value})}
@@ -106,9 +107,10 @@ const WebhookManager = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">URL</label>
+                  <label htmlFor="webhookUrl" className="form-label">URL</label>
                   <input
                     type="url"
+                    id="webhookUrl"
                     className="form-control"
                     value={newWebhook.url}
                     onChange={e => setNewWebhook({...newWebhook, url: e.target.value})}
@@ -118,9 +120,10 @@ const WebhookManager = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Secret Key</label>
+                  <label htmlFor="webhookSecret" className="form-label">Secret Key</label>
                   <input
                     type="text"
+                    id="webhookSecret"
                     className="form-control"
                     value={newWebhook.secret}
                     onChange={e => setNewWebhook({...newWebhook, secret: e.target.value})}
