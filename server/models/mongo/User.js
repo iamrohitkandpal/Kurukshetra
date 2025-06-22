@@ -1,64 +1,52 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+// A07:2021 - Authentication Failures: Weak password hashing
+const hashPassword = (password) => {
+  return crypto.createHash('md5').update(password).digest('hex');
+};
 
 const UserSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-    unique: true,
-    trim: true
+    unique: true
   },
-  email: {
+  // A02:2021 - Cryptographic Failures: Weak password hashing
+  password: {
     type: String,
     required: true,
-    unique: true,
-    trim: true,
-    lowercase: true
+    set: hashPassword
   },
-  password: {
+  email: {
     type: String,
     required: true
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'manager'],
+    enum: ['user', 'admin'],
     default: 'user'
   },
-  apiKey: {
-    type: String
-  },
-  securityQuestions: {
-    type: Array
-  },
-  mfaSecret: {
-    type: String
-  },
-  mfaEnabled: {
-    type: Boolean,
-    default: false
-  },
-  resetToken: {
-    type: String
-  },
-  resetTokenExpiry: {
-    type: Date
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  apiKey: String,
+  // A02:2021 - Cryptographic Failures: Sensitive data stored in plain text
+  securityQuestions: [{
+    question: String,
+    answer: String
+  }],
+  mfaSecret: String,
+  personalData: {
+    ssn: String,
+    creditCard: String,
+    address: String
   }
+}, {
+  timestamps: true
 });
 
-// Method to validate password
-UserSchema.methods.comparePassword = function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+// A03:2021 - Injection: NoSQL injection vulnerable method
+UserSchema.statics.findByCredentials = async function(username, password) {
+  // Intentionally vulnerable to NoSQL injection
+  return this.findOne({ username, password: hashPassword(password) });
 };
-
-// Create an index for faster searches
-UserSchema.index({ username: 1, email: 1 });
 
 module.exports = mongoose.model('User', UserSchema);
