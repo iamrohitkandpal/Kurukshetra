@@ -13,6 +13,7 @@ const WebhookManager = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedEvent, setSelectedEvent] = useState('user.created');
+  const [updateUrl, setUpdateUrl] = useState('');
 
   const availableEvents = [
     { type: 'user', events: ['user.created', 'user.updated', 'user.deleted'] },
@@ -63,6 +64,15 @@ const WebhookManager = () => {
       setSuccess('Webhook deleted successfully');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete webhook');
+    }
+  };
+
+  const handleUpdateUrl = async () => {
+    try {
+      await axios.post('/api/webhooks/update-url', { url: updateUrl });
+      setSuccess('Server URL updated successfully');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update server URL');
     }
   };
 
@@ -230,6 +240,30 @@ const WebhookManager = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-lg-4">
+          <div className="card shadow-sm">
+            <div className="card-header bg-dark text-white">
+              <h3 className="h5 mb-0">Update Server URL</h3>
+            </div>
+            <div className="card-body">
+              <div className="mb-3">
+                <label htmlFor="updateUrl" className="form-label">Update Server URL</label>
+                <input
+                  type="text"
+                  id="updateUrl"
+                  className="form-control"
+                  value={updateUrl}
+                  onChange={(e) => setUpdateUrl(e.target.value)}
+                />
+              </div>
+
+              <button className="btn btn-primary w-100" onClick={handleUpdateUrl}>
+                Update URL
+              </button>
             </div>
           </div>
         </div>

@@ -61,19 +61,21 @@ const ProfilePage = () => {
             <div className="card-body">
               <form onSubmit={handleEmailUpdate}>
                 <div className="mb-3">
-                  <label className="form-label">Username</label>
+                  <label htmlFor="username" className="form-label">Username</label>
                   <input
                     type="text"
                     className="form-control"
+                    id="username"
                     value={user.username}
                     disabled
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Email</label>
+                  <label htmlFor="email" className="form-label">Email</label>
                   <input
                     type="email"
                     className="form-control"
+                    id="email"
                     value={profile.email}
                     onChange={(e) => setProfile({...profile, email: e.target.value})}
                   />

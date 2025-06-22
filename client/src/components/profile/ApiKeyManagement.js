@@ -40,11 +40,12 @@ const ApiKeyManagement = ({ apiKey: initialApiKey }) => {
         {apiKey ? (
           <div>
             <div className="mb-3">
-              <label className="form-label">Your API Key:</label>
+              <label htmlFor="apiKey" className="form-label">Your API Key:</label>
               <div className="input-group">
                 <input
                   type={showKey ? "text" : "password"}
                   className="form-control"
+                  id="apiKey"
                   value={apiKey}
                   readOnly
                 />

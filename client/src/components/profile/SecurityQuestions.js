@@ -26,30 +26,33 @@ const SecurityQuestions = () => {
       <div className="card-body">
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label">Question 1</label>
+            <label htmlFor="question1" className="form-label">Question 1</label>
             <input
               type="text"
               className="form-control"
+              id="question1"
               value={answers.question1}
               onChange={(e) => setAnswers({ ...answers, question1: e.target.value })}
               required
             />
           </div>
           <div className="mb-3">
-            <label className="form-label">Question 2</label>
+            <label htmlFor="question2" className="form-label">Question 2</label>
             <input
               type="text"
               className="form-control"
+              id="question2"
               value={answers.question2}
               onChange={(e) => setAnswers({ ...answers, question2: e.target.value })}
               required
             />
           </div>
           <div className="mb-3">
-            <label className="form-label">Question 3</label>
+            <label htmlFor="question3" className="form-label">Question 3</label>
             <input
               type="text"
               className="form-control"
+              id="question3"
               value={answers.question3}
               onChange={(e) => setAnswers({ ...answers, question3: e.target.value })}
               required

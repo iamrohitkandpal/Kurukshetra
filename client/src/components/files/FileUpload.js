@@ -78,7 +78,7 @@ const FileUpload = () => {
           
           <form onSubmit={onSubmit} className="mb-3">
             <div className="mb-3">
-              <label className="form-label">Choose File</label>
+              <label htmlFor="fileInput" className="form-label">Choose File</label>
               <div className="input-group">
                 <input
                   type="file"
@@ -87,7 +87,7 @@ const FileUpload = () => {
                   onChange={handleFileChange}
                 />
                 <button 
-                  type="submit" 
+                  type="button"
                   className="btn btn-primary"
                   disabled={!file || loading}
                 >
