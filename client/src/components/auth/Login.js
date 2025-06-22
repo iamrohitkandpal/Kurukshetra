@@ -75,7 +75,7 @@ const Login = () => {
                   required
                 />
                 <small id="usernameHelp" className="form-text text-muted">
-                  Try: admin' OR '1'='1
+                  Try: admin&apos; OR &apos;1&apos;=&apos;1
                 </small>
               </div>
               <div className="mb-3">
