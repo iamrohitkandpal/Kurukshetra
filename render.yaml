@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: kurukshetra-api
+    env: node
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://kurukshetra-web.onrender.com
+    healthCheckPath: /api/health
+    autoDeploy: true

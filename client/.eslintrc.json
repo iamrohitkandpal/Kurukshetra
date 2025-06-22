@@ -2,26 +2,40 @@
   "env": {
     "browser": true,
     "es2021": true,
-    "node": true
+    "node": true,
+    "jest": true
   },
   "extends": [
     "eslint:recommended",
-    "plugin:react/recommended"
+    "plugin:react/recommended",
+    "plugin:jsx-a11y/recommended",
+    "plugin:react-hooks/recommended",
+    "plugin:prettier/recommended"
   ],
   "parserOptions": {
     "ecmaFeatures": {
       "jsx": true
     },
-    "ecmaVersion": 12,
+    "ecmaVersion": "latest",
     "sourceType": "module"
   },
   "plugins": [
-    "react"
+    "react",
+    "react-hooks",
+    "jsx-a11y"
   ],
   "rules": {
-    "react/react-in-jsx-scope": "off",
+    "react/react-in-jsx-scope": "off", // Not needed in React 17+
     "no-unused-vars": "warn",
-    "react/prop-types": "warn"
+    "react/prop-types": "off", // Optional: if you're using TypeScript or prefer not to use prop-types
+    "prettier/prettier": [
+      "warn",
+      {
+        "singleQuote": true,
+        "semi": true,
+        "printWidth": 100
+      }
+    ]
   },
   "settings": {
     "react": {

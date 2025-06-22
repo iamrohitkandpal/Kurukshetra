@@ -1,9 +1,6 @@
-const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { User } = require('../models');
-
-// A02:2021 - Cryptographic Failures: Weak secret key
-const JWT_SECRET = 'kurukshetra-secret-key';
+const { signToken } = require('../config/jwt');
 
 // A07:2021 - Authentication Failures: Weak password hashing
 const hashPassword = (password) => {
@@ -47,17 +44,12 @@ const authController = {
       
       if (!user || user.password !== hashPassword(password)) {
         return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      // A07:2021 - Authentication Failures: No token expiration
-      const token = jwt.sign(
-        { 
-          userId: user.id,
-          username: user.username,
-          role: user.role
-        },
-        JWT_SECRET
-      );
+      }      // A07:2021 - Authentication Failures: No token expiration
+      const token = signToken({ 
+        userId: user.id,
+        username: user.username,
+        role: user.role
+      });
 
       res.json({ token, user: {
         id: user.id,
