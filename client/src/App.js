@@ -1,57 +1,39 @@
-import React, { Suspense, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import axios from 'axios';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
+import React, { Suspense } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import axios from "axios";
 
-// Components
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import Dashboard from './components/dashboard/Dashboard';
-import AdminPanel from './components/admin/AdminPanel';
-import ProductList from './components/products/ProductList';
-import ProductDetails from './components/products/ProductDetails';
-import ProfilePage from './components/profile/ProfilePage';
-import FileUpload from './components/files/FileUpload';
-import FileList from './components/files/FileList';
-import FeedbackForm from './components/feedback/FeedbackForm';
-import NotFound from './components/layout/NotFound';
-import PasswordReset from './components/auth/PasswordReset';
-import Layout from './components/layout/Layout';
+// Error boundary
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
-// Context
-import { AuthProvider } from './context/AuthContext';
-import AuthContext from './context/AuthContext';
-import { DatabaseProvider } from './context/DatabaseContext';
+// Context Providers
+import { AuthProvider } from "./context/AuthContext";
+import { DatabaseProvider } from "./context/DatabaseContext";
+
+// Routing protection
+import { PrivateRoute } from "./components/auth/PrivateRoute";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { ROLES } from "./utils/authUtils";
 
 // Lazy-loaded components
-const Landing = React.lazy(() => import('./components/layout/Landing'));
+const Landing = React.lazy(() => import("./components/layout/Landing"));
+const Unauthorized = React.lazy(() => import("./components/auth/Unauthorized"));
+const Login = React.lazy(() => import("./components/auth/Login"));
+const Register = React.lazy(() => import("./components/auth/Register"));
+const PasswordReset = React.lazy(() => import("./components/auth/PasswordReset"));
+const Dashboard = React.lazy(() => import("./components/dashboard/Dashboard"));
+const AdminPanel = React.lazy(() => import("./components/admin/AdminPanel"));
+const ProductList = React.lazy(() => import("./components/products/ProductList"));
+const ProductDetails = React.lazy(() => import("./components/products/ProductDetails"));
+const ProfilePage = React.lazy(() => import("./components/profile/ProfilePage"));
+const FileUpload = React.lazy(() => import("./components/files/FileUpload"));
+const FileList = React.lazy(() => import("./components/files/FileList"));
+const FeedbackForm = React.lazy(() => import("./components/feedback/FeedbackForm"));
+const NotFound = React.lazy(() => import("./components/layout/NotFound"));
+import Layout from "./components/layout/Layout";
 
-// Set default axios baseURL
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Axios global config
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 axios.defaults.withCredentials = true;
-
-// Custom hook to use auth context
-const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-// Auth routes - check if user is logged in
-const PrivateRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
-  return user ? children : <Navigate to="/login" />;
-};
-
-// Admin routes - check if user is admin
-const AdminRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
-  return user && user.role === 'admin' ? children : <Navigate to="/dashboard" />;
-};
 
 function App() {
   return (
@@ -60,25 +42,25 @@ function App() {
         <DatabaseProvider>
           <Router>
             <Layout>
-              <Routes>
-                <Route path="/" element={
-                  <Suspense fallback={<div>Loading...</div>}>
-                    <Landing />
-                  </Suspense>
-                } />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-                <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
-                <Route path="/products" element={<ProductList />} />
-                <Route path="/products/:id" element={<ProductDetails />} />
-                <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-                <Route path="/upload" element={<PrivateRoute><FileUpload /></PrivateRoute>} />
-                <Route path="/files" element={<PrivateRoute><FileList /></PrivateRoute>} />
-                <Route path="/feedback" element={<FeedbackForm />} />
-                <Route path="/reset-password" element={<PasswordReset />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<div className="loading-screen">Loading...</div>}>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/reset-password" element={<PasswordReset />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute roles={[ROLES.ADMIN]}><AdminPanel /></ProtectedRoute>} />
+                  <Route path="/unauthorized" element={<Unauthorized />} />
+                  <Route path="/products" element={<ProductList />} />
+                  <Route path="/products/:id" element={<ProductDetails />} />
+                  <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                  <Route path="/upload" element={<PrivateRoute><FileUpload /></PrivateRoute>} />
+                  <Route path="/files" element={<PrivateRoute><FileList /></PrivateRoute>} />
+                  <Route path="/feedback" element={<FeedbackForm />} />
+                  {/* Make sure this is the last route */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </Layout>
           </Router>
         </DatabaseProvider>
