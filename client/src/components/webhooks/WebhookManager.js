@@ -142,7 +142,7 @@ const WebhookManager = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Events</label>
+                  <label htmlFor='events' className="form-label">Events</label>
                   {availableEvents.map(group => (
                     <div key={group.type} className="mb-2">
                       <small className="text-muted text-uppercase">{group.type} Events</small>
