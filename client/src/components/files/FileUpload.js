@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Toast from '../common/Toast';
 
 const FileUpload = () => {
   const [file, setFile] = useState(null);
@@ -8,6 +9,7 @@ const FileUpload = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [toast, setToast] = useState(null);
 
   const handleFileChange = (e) => {
     if (e.target.files[0]) {
@@ -19,9 +21,17 @@ const FileUpload = () => {
     }
   };
 
+  const showToast = (message, type) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file) {
+      showToast('Please select a file', 'error');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -32,8 +42,7 @@ const FileUpload = () => {
     setUploadProgress(0);
 
     try {
-      // A06: Vulnerable file upload - No file type validation
-      // Create custom axios instance for this request to track progress
+      // A06: Still vulnerable file upload - No file type validation
       const uploadResponse = await axios.post('/api/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
@@ -44,13 +53,16 @@ const FileUpload = () => {
         }
       });
       
-      setSuccess('File uploaded successfully');
+      showToast('File uploaded successfully', 'success');
       setFileName('Choose a file');
       setFile(null);
     } catch (err) {
-      setError(err.response?.data?.error || 'Upload failed');
+      const errorMessage = err.response?.data?.error || 'Upload failed';
+      showToast(errorMessage, 'error');
+      setError(errorMessage);
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -82,22 +94,32 @@ const FileUpload = () => {
                   {loading ? 'Uploading...' : 'Upload'}
                 </button>
               </div>
-              {loading && (
-                <div className="progress mt-2">
-                  <div 
-                    className="progress-bar" 
-                    role="progressbar" 
-                    style={{ width: `${uploadProgress}%` }}
-                    aria-valuenow={uploadProgress} 
-                    aria-valuemin="0" 
-                    aria-valuemax="100"
-                  >
-                    {uploadProgress}%
-                  </div>
-                </div>
-              )}
             </div>
           </form>
+
+          {toast && (
+            <Toast 
+              message={toast.message} 
+              type={toast.type} 
+              onClose={() => setToast(null)} 
+            />
+          )}
+
+          {loading && (
+            <div className="upload-overlay">
+              <div className="upload-progress">
+                <div className="progress">
+                  <div 
+                    className="progress-bar progress-bar-striped progress-bar-animated" 
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-center">
+                  Uploading: {uploadProgress}%
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="alert alert-info">
             <h5 className="alert-heading">Security Information</h5>
