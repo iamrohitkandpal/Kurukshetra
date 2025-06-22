@@ -90,6 +90,7 @@ const FileUpload = () => {
                   type="button"
                   className="btn btn-primary"
                   disabled={!file || loading}
+                  aria-label="Upload file"
                 >
                   {loading ? 'Uploading...' : 'Upload'}
                 </button>

@@ -39,7 +39,7 @@ const FeedbackForm = () => {
           {error && (
             <div className="alert alert-danger alert-dismissible fade show" role="alert">
               {error}
-              <button type="button" className="btn-close" onClick={() => setError('')}></button>
+              <button type="button" className="btn-close" onClick={() => setError('')} aria-label="Close"></button>
             </div>
           )}
           {success && (

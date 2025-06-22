@@ -138,7 +138,7 @@ const ProductDetails = () => {
               </div>
 
               <div className="d-flex">
-                <button className="btn btn-primary me-2" disabled={product.stock <= 0}>
+                <button type="button" className="btn btn-primary me-2" disabled={product.stock <= 0}>
                   Add to Cart
                 </button>
                 
