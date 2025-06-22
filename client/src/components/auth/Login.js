@@ -41,10 +41,10 @@ const Login = () => {
       
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 
-               err.response?.data?.message || 
-               err.message || 
-               'Authentication failed');
+      const errorMessage = err.response?.data?.error || 
+                         err.response?.data?.message || 
+                         (err.code === 'ERR_NETWORK' ? 'Network error - server may be down' : 'Login failed');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ const Login = () => {
                 {error}
               </div>
             )}
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="mb-3">
                 <label htmlFor="username" className="form-label">Username</label>
                 <input
@@ -71,9 +71,12 @@ const Login = () => {
                   name="username"
                   value={username}
                   onChange={onChange}
+                  aria-describedby="usernameHelp"
                   required
                 />
-                <small className="text-muted">Try: admin&apos; OR &apos;1&apos;=&apos;1</small>
+                <small id="usernameHelp" className="form-text text-muted">
+                  Try: admin' OR '1'='1
+                </small>
               </div>
               <div className="mb-3">
                 <label htmlFor="password" className="form-label">Password</label>

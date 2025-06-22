@@ -35,29 +35,99 @@ import Layout from "./components/layout/Layout";
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 axios.defaults.withCredentials = true;
 
+// Fallback loading component
+const LoadingFallback = () => (
+  <div className="loading-screen d-flex justify-content-center align-items-center min-vh-100">
+    <div className="text-center">
+      <div className="spinner-border text-primary mb-3" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </div>
+      <p>Loading application...</p>
+    </div>
+  </div>
+);
+
+// Error fallback component
+const ErrorFallback = ({ error }) => (
+  <div className="error-screen d-flex justify-content-center align-items-center min-vh-100">
+    <div className="text-center">
+      <h2>Something went wrong</h2>
+      <pre className="text-danger">{error?.message}</pre>
+      <button 
+        className="btn btn-primary mt-3"
+        onClick={() => window.location.reload()}
+      >
+        Reload Application
+      </button>
+    </div>
+  </div>
+);
+
 function App() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
       <AuthProvider>
         <DatabaseProvider>
           <Router>
             <Layout>
-              <Suspense fallback={<div className="loading-screen">Loading...</div>}>
+              <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                   <Route path="/" element={<Landing />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/reset-password" element={<PasswordReset />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/admin" element={<ProtectedRoute roles={[ROLES.ADMIN]}><AdminPanel /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <Dashboard />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/admin" element={
+                    <ProtectedRoute roles={[ROLES.ADMIN]}>
+                      <ErrorBoundary>
+                        <AdminPanel />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
                   <Route path="/unauthorized" element={<Unauthorized />} />
-                  <Route path="/products" element={<ProductList />} />
-                  <Route path="/products/:id" element={<ProductDetails />} />
-                  <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-                  <Route path="/upload" element={<PrivateRoute><FileUpload /></PrivateRoute>} />
-                  <Route path="/files" element={<PrivateRoute><FileList /></PrivateRoute>} />
-                  <Route path="/feedback" element={<FeedbackForm />} />
-                  {/* Make sure this is the last route */}
+                  <Route path="/products" element={
+                    <ErrorBoundary>
+                      <ProductList />
+                    </ErrorBoundary>
+                  } />
+                  <Route path="/products/:id" element={
+                    <ErrorBoundary>
+                      <ProductDetails />
+                    </ErrorBoundary>
+                  } />
+                  <Route path="/profile" element={
+                    <PrivateRoute>
+                      <ErrorBoundary>
+                        <ProfilePage />
+                      </ErrorBoundary>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/upload" element={
+                    <PrivateRoute>
+                      <ErrorBoundary>
+                        <FileUpload />
+                      </ErrorBoundary>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/files" element={
+                    <PrivateRoute>
+                      <ErrorBoundary>
+                        <FileList />
+                      </ErrorBoundary>
+                    </PrivateRoute>
+                  } />
+                  <Route path="/feedback" element={
+                    <ErrorBoundary>
+                      <FeedbackForm />
+                    </ErrorBoundary>
+                  } />
+                  {/* Global fallback route */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

@@ -45,6 +45,24 @@ const ProfilePage = () => {
 
   if (loading) return <div>Loading...</div>;
 
+  if (error) {
+    return (
+      <div className="container mt-4">
+        <div className="alert alert-warning">
+          <h4 className="alert-heading">⚠️ Error Loading Profile</h4>
+          <p>{error}</p>
+          <p>Server may be down or uninitialized.</p>
+          <button 
+            className="btn btn-outline-warning mt-2"
+            onClick={() => fetchProfile()}
+          >
+            Retry Loading Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <h2 className="mb-4">Profile Settings</h2>

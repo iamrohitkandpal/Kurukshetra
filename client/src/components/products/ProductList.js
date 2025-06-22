@@ -6,7 +6,7 @@ import useDebounce from '../../hooks/useDebounce';
 const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('');
   const [categories, setCategories] = useState([]);
@@ -16,6 +16,7 @@ const ProductList = () => {
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       // A03: SQL Injection vulnerability in the API
       let url = '/api/products';
@@ -29,13 +30,9 @@ const ProductList = () => {
       
       const res = await axios.get(url);
       setProducts(res.data);
-      
-      // Extract unique categories
-      const uniqueCategories = [...new Set(res.data.map(product => product.category))];
-      setCategories(uniqueCategories);
     } catch (err) {
-      setError('Failed to load products');
-      console.error(err);
+      setError(err.response?.data?.error || 'Failed to load products');
+      console.error('Product fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -49,6 +46,26 @@ const ProductList = () => {
     e.preventDefault();
     // Search is already handled by the debounced effect
   };
+
+  if (error) {
+    return (
+      <div className="container mt-4">
+        <div className="alert alert-warning">
+          <h4 className="alert-heading">⚠️ Error Loading Products</h4>
+          <p>{error}</p>
+          <p>Server may be down or uninitialized.</p>
+          <div className="mt-3">
+            <button 
+              className="btn btn-outline-warning"
+              onClick={() => fetchProducts()}
+            >
+              Retry Loading Products
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mt-4">
@@ -82,14 +99,20 @@ const ProductList = () => {
         </div>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-
       {loading ? (
-        <div className="text-center my-5">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-2">Loading products...</p>
+        <div className="row">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} className="col-md-4 mb-4">
+              <div className="card shadow-sm">
+                <div className="card-body">
+                  <div className="skeleton-loader h5 w-75"></div>
+                  <div className="skeleton-loader w-25 mt-2"></div>
+                  <div className="skeleton-loader w-100 mt-3"></div>
+                  <div className="skeleton-loader w-100 mt-2"></div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="row">
