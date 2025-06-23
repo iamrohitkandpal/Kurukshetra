@@ -88,6 +88,7 @@ const SensitiveDataManager = () => {
                   onChange={(e) => setPersonalData({...personalData, phoneNumber: e.target.value})}
                 />
               </div>
+
               <div className="mb-3">
                 <label htmlFor="ssn" className="form-label">SSN</label>
                 <input

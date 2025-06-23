@@ -19,7 +19,7 @@ const Navbar = () => {
       <nav className="navbar navbar-expand-lg navbar-glass">
         <div className="container">
           <Link className="navbar-brand gradient-text d-flex align-items-center" to="/">
-            <img src="/images/logo/logo32.png" alt="Logo" className="me-2" width="32" height="32" />
+            <img src="/images/logo/logo32.png" alt="Kurukshetra Logo" className="me-2" width="32" height="32" />
             <span className="font-mono">Kurukshetra</span>
           </Link>
           <button

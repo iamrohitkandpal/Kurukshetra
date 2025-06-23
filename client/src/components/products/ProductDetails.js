@@ -111,13 +111,17 @@ const ProductDetails = () => {
             <div className="col-md-4">
               {product.image_url ? (
                 <img 
-                  src={`${process.env.REACT_APP_API_URL}/images/products/${product.image_url}`}
+                  src={`/images/products/${product.image_url}`}
                   alt={product.name} 
-                  className="img-fluid rounded" 
+                  className="img-fluid rounded"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/images/default/product-placeholder.png';
+                  }}
                 />
               ) : (
                 <img
-                  src={`${process.env.REACT_APP_API_URL}/images/default/product-placeholder.png`}
+                  src="/images/default/product-placeholder.png"
                   alt="Product placeholder"
                   className="img-fluid rounded"
                 />

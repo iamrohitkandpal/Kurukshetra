@@ -23,7 +23,15 @@ const Sidebar = () => {
   return (
     <div className="sidebar glass-bg">
       <div className="sidebar-header">
-        <img src="/public/images/logo/logo32.png" alt="Logo" className="sidebar-logo" />
+        <img 
+          src="/images/logo/logo32.png" 
+          alt="Kurukshetra Logo" 
+          className="sidebar-logo"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = '/images/default/placeholder-logo.png';
+          }}
+        />
         <h5 className="gradient-text mb-0">Kurukshetra</h5>
       </div>
 
