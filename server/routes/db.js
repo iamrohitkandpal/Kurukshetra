@@ -3,26 +3,31 @@ const router = express.Router();
 const { auth } = require('../middleware/auth');
 const dbManager = require('../config/dbManager');
 
-// Platform feature: Database switching endpoint
-router.post('/switch', auth, async (req, res) => {
-  try {
-    const { type } = req.body;
-    
-    if (!['sqlite', 'mongodb'].includes(type)) {
-      return res.status(400).json({ error: 'Invalid database type' });
-    }
+// Get current database type
+router.get('/type', (req, res) => {
+  res.json({ type: process.env.DB_TYPE || 'sqlite' });
+});
 
+// Switch database type
+router.post('/switch', auth, async (req, res) => {
+  const { type } = req.body;
+  
+  if (!['mongodb', 'sqlite'].includes(type)) {
+    return res.status(400).json({ error: 'Invalid database type' });
+  }
+
+  try {
+    process.env.DB_TYPE = type;
     const result = await dbManager.switchDatabase(type);
     
-    // Return available injection vulnerabilities based on DB type
-    const vulnerabilities = type === 'mongodb' 
-      ? ['NoSQL Injection in User Search', 'NoSQL Injection in Products', 'NoSQL Object Injection']
-      : ['SQL Injection in Login', 'Union-based SQL Injection', 'Error-based SQL Injection'];
-
     res.json({ 
       success: true, 
       type: result.type,
-      vulnerabilities
+      vulnerabilities: [
+        type === 'mongodb' ? 'NoSQL Injection' : 'SQL Injection',
+        'Sensitive Data Exposure',
+        'Insecure Direct Object References'
+      ]
     });
   } catch (error) {
     res.status(500).json({ 
@@ -30,12 +35,6 @@ router.post('/switch', auth, async (req, res) => {
       error: error.message 
     });
   }
-});
-
-// Get current database status
-router.get('/status', auth, (req, res) => {
-  const currentDb = dbManager.getCurrentDb();
-  res.json({ type: currentDb });
 });
 
 module.exports = router;

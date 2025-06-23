@@ -30,6 +30,11 @@ const app = express();
 // A05:2021 - Security Misconfiguration: Overly permissive CORS
 app.use(cors({
   origin: process.env.CORS_ORIGIN || true,
+  origin: [
+    'http://localhost:3000',
+    'https://kurukshetra-app.vercel.app',
+    'https://kurukshetra-app-git-main-iamrohitkandpal-4938s-projects.vercel.app'
+  ],
   credentials: true
 }));
 
