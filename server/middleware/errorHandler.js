@@ -18,6 +18,17 @@ class AppError extends Error {
   }
 }
 
+const createErrorResponse = (error, includeStack = false) => ({
+  error: {
+    message: error.message,
+    type: error.type || 'UnknownError',
+    code: error.code,
+    ...(includeStack && process.env.NODE_ENV === 'development' && {
+      stack: error.stack
+    })
+  }
+});
+
 const errorHandler = (err, req, res, next) => {
   // Log error with stack trace for debugging
   logger.error('Unhandled error:', {

@@ -35,4 +35,26 @@ function validateEnv() {
   return true;
 }
 
-module.exports = { validateEnv };
+// Add to envValidator.js
+const validateValue = (key, value) => {
+  const validators = {
+    NODE_ENV: (val) => ['development', 'production', 'test'].includes(val),
+    DB_TYPE: (val) => ['mongodb', 'sqlite'].includes(val),
+    JWT_SECRET: (val) => typeof val === 'string' && val.length >= 32,
+    MONGODB_URI: (val) => val.startsWith('mongodb://') || val.startsWith('mongodb+srv://')
+  };
+
+  return validators[key] ? validators[key](value) : true;
+};
+
+function validateEnvValues() {
+  const invalidVars = [];
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!validateValue(key, value)) {
+      invalidVars.push(key);
+    }
+  }
+  return invalidVars;
+}
+
+module.exports = { validateEnv, validateEnvValues };

@@ -1,9 +1,30 @@
 const logger = require('./logger');
 
 class WebhookCache {
-  constructor() {
+  constructor(options = {}) {
+    this.maxSize = options.maxSize || 1000;
+    this.ttl = options.ttl || 3600000;
     this.requests = new Map();
-    this.cleanupInterval = setInterval(() => this.cleanup(), 3600000); // Cleanup every hour
+    this._setupCleanup();
+  }
+
+  _setupCleanup() {
+    this.cleanupInterval = setInterval(() => {
+      this.cleanup();
+      this._enforceLimit();
+    }, 60000);
+  }
+
+  _enforceLimit() {
+    if (this.requests.size > this.maxSize) {
+      const entriesToDelete = Array.from(this.requests.entries())
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+        .slice(0, this.requests.size - this.maxSize);
+      
+      for (const [key] of entriesToDelete) {
+        this.requests.delete(key);
+      }
+    }
   }
 
   add(id, request) {

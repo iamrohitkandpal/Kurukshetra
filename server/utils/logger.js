@@ -1,5 +1,8 @@
 const winston = require('winston');
 const path = require('path');
+require('winston-daily-rotate-file');
+
+const { format } = winston;
 
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -8,6 +11,13 @@ const logFormat = winston.format.combine(
     return `${timestamp} ${level.toUpperCase()}: ${message}${stack ? '\n' + stack : ''}`;
   })
 );
+
+const rotateTransport = new winston.transports.DailyRotateFile({
+  filename: 'logs/app-%DATE%.log',
+  datePattern: 'YYYY-MM-DD',
+  maxSize: '20m',
+  maxFiles: '14d'
+});
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -19,7 +29,8 @@ const logger = winston.createLogger({
     }),
     new winston.transports.File({ 
       filename: path.join(__dirname, '../logs/combined.log')
-    })
+    }),
+    rotateTransport
   ]
 });
 
@@ -31,5 +42,16 @@ if (process.env.NODE_ENV !== 'production') {
     )
   }));
 }
+
+const addRequestContext = format((info, opts) => {
+  if (opts.req) {
+    info.requestId = opts.req.id;
+    info.method = opts.req.method;
+    info.path = opts.req.path;
+  }
+  return info;
+});
+
+logger.addRequestContext = addRequestContext;
 
 module.exports = logger;

@@ -1,19 +1,25 @@
 {
+  "name": "kurukshetra-server",
+  "version": "1.0.0",
+  "description": "An intentionally vulnerable backend for cybersecurity training",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node utils/setup.js && node server.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "dev:sqlite": "cross-env NODE_ENV=development DB_TYPE=sqlite nodemon server.js",
-    "migrate": "node utils/migrate.js",
     "dev:mongo": "cross-env NODE_ENV=development DB_TYPE=mongodb nodemon server.js",
+    "setup": "node utils/setup.js",
+    "migrate": "node utils/migrate.js",
+    "prestart": "node scripts/ensure-uploads-dir.js",
+    "db:reset": "node scripts/reset-db.js",
+
     "test": "jest",
     "test:watch": "jest --watch",
     "test:vulns": "cross-env NODE_ENV=test jest --testMatch='**/tests/*.test.js' --setupFiles='./tests/setup.js'",
     "test:auth": "cross-env NODE_ENV=test jest --testMatch='**/tests/auth.test.js'",
     "test:injection": "cross-env NODE_ENV=test jest --testMatch='**/tests/injection.test.js'",
     "test:access": "cross-env NODE_ENV=test jest --testMatch='**/tests/access-control.test.js'",
-    "test:rce": "cross-env NODE_ENV=test jest --testMatch='**/tests/rce-ssrf.test.js'",
-    "prestart": "node scripts/ensure-uploads-dir.js",
-    "db:reset": "node scripts/reset-db.js"
+    "test:rce": "cross-env NODE_ENV=test jest --testMatch='**/tests/rce-ssrf.test.js'"
   },
   "dependencies": {
     "axios": "^1.10.0",
