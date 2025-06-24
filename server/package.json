@@ -10,8 +10,8 @@
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "dev:sqlite": "cross-env NODE_ENV=development DB_TYPE=sqlite nodemon server.js",
     "dev:mongo": "cross-env NODE_ENV=development DB_TYPE=mongodb nodemon server.js",
-    "prestart": "node scripts/ensure-uploads-dir.js",
     "db:reset": "node scripts/reset-db.js",
+    
     "test": "jest",
     "test:watch": "jest --watch",
     "test:vulns": "cross-env NODE_ENV=test jest --testMatch='**/tests/*.test.js' --setupFiles='./tests/setup.js'",
