@@ -19,6 +19,17 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Add response wrapper
+const sendFileResponse = (res, file) => {
+  res.json({
+    id: file.id,
+    filename: file.filename,
+    size: file.size,
+    uploadedBy: file.uploadedBy,
+    url: `/files/${file.filename}`
+  });
+};
+
 // A05:2021 - Security Misconfiguration: No file type validation
 router.post('/upload', auth, upload.single('file'), async (req, res) => {
   try {
@@ -34,7 +45,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
       uploadedBy: req.user.userId
     });
 
-    res.json(file);
+    sendFileResponse(res, file);
   } catch (error) {
     console.error('File upload error:', error);
     res.status(500).json({ error: error.message });

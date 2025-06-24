@@ -2,9 +2,17 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const dbManager = require('../config/dbManager');
+const logger = require('../config/logger'); // Assuming you have a logger configuration
+
+// Add logging middleware
+const logFeedback = async (req, res, next) => {
+  const { method, path, body } = req;
+  logger.info('Feedback operation', { method, path, body });
+  next();
+};
 
 // A03:2021 - Injection: Vulnerable feedback submission
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, logFeedback, async (req, res) => {
   try {
     const db = dbManager.getConnection();
     const { content, rating } = req.body;
@@ -26,7 +34,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // A03:2021 - Injection: Vulnerable feedback listing
-router.get('/', async (req, res) => {
+router.get('/', logFeedback, async (req, res) => {
   try {
     const db = dbManager.getConnection();
     const feedback = await db.models.Feedback.findAll({
@@ -46,7 +54,7 @@ router.get('/', async (req, res) => {
 });
 
 // A03:2021 - Injection: Vulnerable feedback rendering
-router.get('/:id', async (req, res) => {
+router.get('/:id', logFeedback, async (req, res) => {
   try {
     const db = dbManager.getConnection();
     const feedback = await db.models.Feedback.findByPk(req.params.id);

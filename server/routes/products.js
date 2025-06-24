@@ -9,7 +9,10 @@ router.get('/', async (req, res) => {
     const db = dbManager.getConnection();
     const { search, category } = req.query;
     
-    if (dbManager.getCurrentDb() === 'sqlite') {
+    // Allow DB override via query param
+    const dbType = req.query.db || dbManager.getCurrentDb();
+    
+    if (dbType === 'sqlite') {
       // Intentionally vulnerable to SQL injection
       const query = `
         SELECT * FROM Products 
