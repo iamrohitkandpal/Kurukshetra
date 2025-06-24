@@ -1,6 +1,13 @@
 const winston = require('winston');
 const path = require('path');
-require('winston-daily-rotate-file');
+let DailyRotateFile;
+
+// Safely import daily rotate file
+try {
+  DailyRotateFile = require('winston-daily-rotate-file');
+} catch (err) {
+  console.warn('winston-daily-rotate-file not available, falling back to regular file transport');
+}
 
 const { format } = winston;
 
@@ -12,28 +19,44 @@ const logFormat = winston.format.combine(
   })
 );
 
-const rotateTransport = new winston.transports.DailyRotateFile({
-  filename: 'logs/app-%DATE%.log',
-  datePattern: 'YYYY-MM-DD',
-  maxSize: '20m',
-  maxFiles: '14d'
-});
+// Create base transports array
+const transports = [];
 
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: logFormat,
-  transports: [
+// Add rotating file transport if available
+if (DailyRotateFile) {
+  transports.push(
+    new DailyRotateFile({
+      filename: path.join(__dirname, '../logs/error-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      level: 'error',
+      maxFiles: '14d'
+    }),
+    new DailyRotateFile({
+      filename: path.join(__dirname, '../logs/combined-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d'
+    })
+  );
+} else {
+  // Fallback to regular file transport
+  transports.push(
     new winston.transports.File({ 
       filename: path.join(__dirname, '../logs/error.log'), 
       level: 'error' 
     }),
     new winston.transports.File({ 
       filename: path.join(__dirname, '../logs/combined.log')
-    }),
-    rotateTransport
-  ]
+    })
+  );
+}
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: logFormat,
+  transports: transports
 });
 
+// Add console transport in non-production environments
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(

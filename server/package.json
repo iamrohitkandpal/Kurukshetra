@@ -33,7 +33,8 @@
     "node-fetch": "^3.3.2",
     "sequelize": "^6.32.1",
     "sqlite3": "^5.1.6",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
