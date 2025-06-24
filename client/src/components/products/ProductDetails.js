@@ -20,20 +20,30 @@ const ProductDetails = () => {
   };
 
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchProduct = async () => {
       try {
-        // A03: SQL Injection vulnerability in the API
-        const res = await axios.get(`/api/products/${id}`);
-        setProduct(res.data);
+        const res = await axios.get(`/api/products/${id}`, {
+          signal: abortController.signal
+        });
+        if (!abortController.signal.aborted) {
+          setProduct(res.data);
+        }
       } catch (err) {
-        setError('Failed to load product details');
-        console.error(err);
+        if (!abortController.signal.aborted) {
+          setError('Failed to load product details');
+        }
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProduct();
+
+    return () => abortController.abort();
   }, [id]);
 
   const handleDelete = async () => {
@@ -109,23 +119,12 @@ const ProductDetails = () => {
         <div className="card-body">
           <div className="row">
             <div className="col-md-4">
-              {product.image_url ? (
-                <img 
-                  src={`/images/products/${product.image_url}`}
-                  alt={product.name} 
-                  className="img-fluid rounded"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/images/default/product-placeholder.png';
-                  }}
-                />
-              ) : (
-                <img
-                  src="/images/default/product-placeholder.png"
-                  alt="Product placeholder"
-                  className="img-fluid rounded"
-                />
-              )}
+              <div className="card">
+                <div className="card-body text-center">
+                  <p className="text-muted">Product image unavailable</p>
+                  <small className="text-muted">File support is disabled in this version</small>
+                </div>
+              </div>
             </div>
             <div className="col-md-8">
               <h2 className="card-title">{product.name}</h2>

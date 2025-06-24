@@ -6,7 +6,7 @@ import { isAdmin, getRoleBadgeColor, getRoleIcon } from '../../utils/authUtils';
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  
+
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
   };
@@ -14,12 +14,14 @@ const Navbar = () => {
   const handleLogoutConfirm = () => {
     logout();
     setShowLogoutModal(false);
-  };  return (
+  };
+
+  return (
     <>
       <nav className="navbar navbar-expand-lg navbar-glass">
         <div className="container">
           <Link className="navbar-brand gradient-text d-flex align-items-center" to="/">
-            <img src="/images/logo/logo32.png" alt="Kurukshetra Logo" className="me-2" width="32" height="32" />
+            <span className="logo-text me-2">KS</span>
             <span className="font-mono">Kurukshetra</span>
           </Link>
           <button
@@ -27,8 +29,11 @@ const Navbar = () => {
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
           >
-            <span className="navbar-toggler-icon"></span>
+            <span className="navbar-toggler-icon" />
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto align-items-center">
@@ -52,7 +57,7 @@ const Navbar = () => {
                     <Link className="nav-link" to="/profile">
                       <div className="d-flex align-items-center">
                         <span className="avatar-wrapper me-2">
-                          {getRoleIcon(user.role)}
+                          {getRoleIcon(user.role) || '👤'}
                         </span>
                         <span className="me-2">{user.username}</span>
                         <span className={`badge bg-${getRoleBadgeColor(user.role)}`}>
@@ -62,7 +67,7 @@ const Navbar = () => {
                     </Link>
                   </li>
                   <li className="nav-item">
-                    <button 
+                    <button
                       onClick={handleLogoutClick}
                       className="nav-link btn btn-link"
                     >
@@ -87,27 +92,45 @@ const Navbar = () => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="modal show d-block" tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-dialog" role="document">
+            <div className="modal-content shadow-lg">
               <div className="modal-header">
                 <h5 className="modal-title">Confirm Logout</h5>
-                <button type="button" className="btn-close" onClick={() => setShowLogoutModal(false)}></button>
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Close"
+                  onClick={() => setShowLogoutModal(false)}
+                />
               </div>
               <div className="modal-body">
                 <p>Are you sure you want to logout?</p>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowLogoutModal(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowLogoutModal(false)}
+                >
                   Cancel
                 </button>
-                <button type="button" className="btn btn-primary" onClick={handleLogoutConfirm}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleLogoutConfirm}
+                >
                   Logout
                 </button>
               </div>
             </div>
           </div>
-          <div className="modal-backdrop show"></div>
+          <div className="modal-backdrop show" />
         </div>
       )}
     </>

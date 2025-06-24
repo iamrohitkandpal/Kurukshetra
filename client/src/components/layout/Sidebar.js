@@ -11,7 +11,6 @@ const Sidebar = () => {
   const menuItems = [
     { path: '/dashboard', icon: '📊', label: 'Dashboard' },
     { path: '/products', icon: '🔍', label: 'Products' },
-    { path: '/files', icon: '📁', label: 'Files' },
     { path: '/profile', icon: '👤', label: 'Profile' },
     { path: '/feedback', icon: '📝', label: 'Feedback' },
   ];
@@ -23,15 +22,7 @@ const Sidebar = () => {
   return (
     <div className="sidebar glass-bg">
       <div className="sidebar-header">
-        <img 
-          src="/images/logo/logo32.png" 
-          alt="Kurukshetra Logo" 
-          className="sidebar-logo"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = '/images/default/placeholder-logo.png';
-          }}
-        />
+        <span className="logo-text">KS</span>
         <h5 className="gradient-text mb-0">Kurukshetra</h5>
       </div>
 

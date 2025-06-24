@@ -100,10 +100,10 @@ const SensitiveDataManager = () => {
                 />
               </div>
               <div className="mb-3">
-                <label htmlFor="dob" className="form-label">Date of Birth</label>
+                <label htmlFor="dateOfBirth" className="form-label">Date of Birth</label>
                 <input
                   type="date"
-                  id="dob"
+                  id="dateOfBirth"
                   className="form-control"
                   value={personalData.dateOfBirth}
                   onChange={(e) => setPersonalData({...personalData, dateOfBirth: e.target.value})}
