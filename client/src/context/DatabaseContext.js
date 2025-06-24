@@ -33,10 +33,9 @@ export const DatabaseProvider = ({ children }) => {
     fetchDbType();
   }, []);
 
-  // Update localStorage and axios defaults whenever dbType changes
+  // Update localStorage whenever dbType changes
   useEffect(() => {
     localStorage.setItem('dbType', dbType);
-    axios.defaults.params = { ...axios.defaults.params, db: dbType };
   }, [dbType]);
 
   return (

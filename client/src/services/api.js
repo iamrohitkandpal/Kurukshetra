@@ -4,7 +4,9 @@ const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
   baseURL,
-  withCredentials: true
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 export const Api = {
@@ -17,29 +19,45 @@ export const Api = {
   register: (userData) => api.post('/api/auth/register', userData),
   resetPassword: (email) => api.post('/api/auth/reset-password', { email }),
 
-  // User operations
-  getProfile: () => api.get('/api/users/profile'),
-  updateProfile: (data) => api.put('/api/users/profile', data),
-  generateApiKey: () => api.post('/api/users/api-key'),
-  revokeApiKey: () => api.delete('/api/users/api-key'),
+  // User operations with db param
+  getProfile: () => {
+    const dbType = localStorage.getItem('dbType');
+    return api.get('/api/users/profile', { params: { db: dbType } });
+  },
+  updateProfile: (data) => {
+    const dbType = localStorage.getItem('dbType');
+    return api.put('/api/users/profile', data, { params: { db: dbType } });
+  },
 
-  // Product operations
-  getProducts: (params) => api.get('/api/products', { params }),
-  getProduct: (id) => api.get(`/api/products/${id}`),
+  // Product operations with db param
+  getProducts: (params = {}) => {
+    const dbType = localStorage.getItem('dbType');
+    return api.get('/api/products', { params: { ...params, db: dbType } });
+  },
+  getProduct: (id, params = {}) => {
+    const dbType = localStorage.getItem('dbType');
+    return api.get(`/api/products/${id}`, { params: { ...params, db: dbType } });
+  },
 
-  // File operations
-  uploadFile: (formData) => api.post('/api/files/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getFiles: () => api.get('/api/files'),
+  // Progress tracking with db param
+  getProgress: (params = {}) => {
+    const dbType = localStorage.getItem('dbType');
+    return api.get('/api/progress/summary', { params: { ...params, db: dbType } });
+  },
+  markVulnerabilityComplete: (data) => {
+    const dbType = localStorage.getItem('dbType');
+    return api.post('/api/progress/complete', data, { params: { db: dbType } });
+  },
+  resetProgress: () => {
+    const dbType = localStorage.getItem('dbType');
+    return api.post('/api/progress/reset', {}, { params: { db: dbType } });
+  },
 
-  // Progress tracking
-  getProgress: () => api.get('/api/progress/summary'),
-  markVulnerabilityComplete: (data) => api.post('/api/progress/complete', data),
-  resetProgress: () => api.post('/api/progress/reset'),
-
-  // Feedback
-  submitFeedback: (data) => api.post('/api/feedback', data)
+  // Feedback with db param
+  submitFeedback: (data) => {
+    const dbType = localStorage.getItem('dbType');
+    return api.post('/api/feedback', data, { params: { db: dbType } });
+  }
 };
 
 // Add response interceptor for consistent error handling
