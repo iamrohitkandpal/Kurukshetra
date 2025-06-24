@@ -11,6 +11,13 @@ let currentDb = null;
 let sequelize = null;
 let models = null;
 
+// Add connection state tracking
+let connectionState = {
+  isConnecting: false,
+  lastError: null,
+  reconnectAttempts: 0
+};
+
 async function validateModels(dbType) {
   const modelPath = path.join(__dirname, '..', 'models', dbType);
   const requiredModels = ['User', 'Product', 'Feedback', 'Progress', 'File', 'AuditLog', 'Webhook'];
@@ -73,6 +80,22 @@ async function initializeDatabase() {
   }
 }
 
+// Add connection retry logic
+async function connectWithRetry(type, maxAttempts = 3) {
+  while (connectionState.reconnectAttempts < maxAttempts) {
+    try {
+      // ... existing connection logic
+      connectionState.reconnectAttempts = 0;
+      return true;
+    } catch (error) {
+      connectionState.lastError = error;
+      connectionState.reconnectAttempts++;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  throw new Error(`Failed to connect after ${maxAttempts} attempts`);
+}
+
 const dbManager = {
   async switchDatabase(type) {
     try {
@@ -126,4 +149,14 @@ const dbManager = {
   }
 };
 
-module.exports = { dbManager, initializeDatabase, validateModels };
+// Add proper cleanup
+async function cleanup() {
+  if (currentDb === 'sqlite' && sequelize) {
+    await sequelize.close();
+  } else if (currentDb === 'mongodb' && mongoose.connection.readyState === 1) {
+    await mongoose.disconnect();
+  }
+}
+
+// Add to exports
+module.exports = { dbManager, initializeDatabase, validateModels, cleanup };

@@ -5,13 +5,15 @@ const config = {
     sqlite: {
       dialect: 'sqlite',
       storage: path.join(__dirname, '../data/kurukshetra.sqlite'),
-      logging: console.log
+      logging: console.log // Should use logger utility instead
     },
     mongodb: {
       url: process.env.MONGODB_URI || 'mongodb://localhost:27017/kurukshetra',
       options: {
         useNewUrlParser: true,
-        useUnifiedTopology: true
+        useUnifiedTopology: true,
+        // Missing connection timeout settings
+        // Missing retry settings
       }
     }
   },
@@ -35,5 +37,10 @@ const config = {
     file: path.join(__dirname, '../../logs/app.log')
   }
 };
+
+// Add validation
+if (!process.env.NODE_ENV) {
+  console.warn('NODE_ENV not set, defaulting to development');
+}
 
 module.exports = config;
