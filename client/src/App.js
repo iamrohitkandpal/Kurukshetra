@@ -25,8 +25,6 @@ const AdminPanel = React.lazy(() => import("./components/admin/AdminPanel"));
 const ProductList = React.lazy(() => import("./components/products/ProductList"));
 const ProductDetails = React.lazy(() => import("./components/products/ProductDetails"));
 const ProfilePage = React.lazy(() => import("./components/profile/ProfilePage"));
-const FileUpload = React.lazy(() => import("./components/files/FileUpload"));
-const FileList = React.lazy(() => import("./components/files/FileList"));
 const FeedbackForm = React.lazy(() => import("./components/feedback/FeedbackForm"));
 const NotFound = React.lazy(() => import("./components/layout/NotFound"));
 import Layout from "./components/layout/Layout";
@@ -105,20 +103,6 @@ function App() {
                     <PrivateRoute>
                       <ErrorBoundary>
                         <ProfilePage />
-                      </ErrorBoundary>
-                    </PrivateRoute>
-                  } />
-                  <Route path="/upload" element={
-                    <PrivateRoute>
-                      <ErrorBoundary>
-                        <FileUpload />
-                      </ErrorBoundary>
-                    </PrivateRoute>
-                  } />
-                  <Route path="/files" element={
-                    <PrivateRoute>
-                      <ErrorBoundary>
-                        <FileList />
                       </ErrorBoundary>
                     </PrivateRoute>
                   } />

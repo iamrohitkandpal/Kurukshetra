@@ -31,13 +31,14 @@ const Register = () => {
     setError('');
 
     try {
-      // A03: SQL Injection vulnerability exists in backend
-      // A07: Weak password requirements
-      await axios.post('/api/auth/register', {
-        username,
-        email,
-        password
-      });
+      await axios.post('/api/auth/register', 
+        {
+          username,
+          email,
+          password
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
 
       // Success, redirect to login
       navigate('/login');

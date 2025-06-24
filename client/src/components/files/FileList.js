@@ -1,33 +1,41 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const FileList = () => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchFiles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await axios.get('/api/files');
-      setFiles(res.data);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load files');
-      console.error('File fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchFiles();
-  }, [fetchFiles]);
+    const abortController = new AbortController();
+    
+    const fetchFiles = async () => {
+      try {
+        const res = await axios.get('/api/files', {
+          signal: abortController.signal
+        });
+        if (!abortController.signal.aborted) {
+          setFiles(res.data);
+        }
+      } catch (err) {
+        if (!abortController.signal.aborted) {
+          setError('Failed to load files. Please try again later.');
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
 
-  const downloadFile = (filename) => {
-    // A03: Path Traversal vulnerability
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-    window.open(`${baseUrl}/uploads/${filename}`);
+    fetchFiles();
+
+    return () => abortController.abort();
+  }, []);
+
+  // Replace download with placeholder message
+  const handleDownload = () => {
+    setError('File download functionality disabled');
   };
 
   if (error) {
@@ -95,7 +103,7 @@ const FileList = () => {
                   <td>
                     <button
                       className="btn btn-sm btn-primary"
-                      onClick={() => downloadFile(file.filename)}
+                      onClick={handleDownload}
                     >
                       Download
                     </button>

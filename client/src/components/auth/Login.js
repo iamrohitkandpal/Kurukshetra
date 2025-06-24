@@ -25,7 +25,10 @@ const Login = () => {
     setError('');
 
     try {
-      const res = await axios.post('/api/auth/login', { username, password });
+      const res = await axios.post('/api/auth/login', 
+        { username, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
       
       if (!res.data || !res.data.token) {
         throw new Error('Invalid server response');
