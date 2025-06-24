@@ -11,18 +11,17 @@ const { DB_TYPE, MONGODB_URI } = process.env;
 let sequelize;
 
 async function setup() {
-  // Create required directories
-  const dirs = ['logs', 'data'];
-  dirs.forEach((dir) => {
-    const dirPath = path.join(__dirname, '..', dir);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-      logger.info(`Created directory: ${dir}`);
-    }
-  });
-
   try {
-    // Initialize database
+    // Create required directories
+    const dirs = ['logs', 'data'];
+    for (const dir of dirs) {
+      const dirPath = path.join(__dirname, '..', dir);
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+        logger.info(`Created directory: ${dir}`);
+      }
+    }
+
     if (DB_TYPE === 'mongodb') {
       logger.info('Connecting to MongoDB...');
       await mongoose.connect(MONGODB_URI, {
@@ -30,6 +29,7 @@ async function setup() {
         useUnifiedTopology: true,
       });
       logger.info('MongoDB connected successfully');
+      await mongoose.disconnect();
     } else {
       logger.info('Initializing SQLite...');
       sequelize = new Sequelize({
@@ -38,24 +38,20 @@ async function setup() {
       });
       await sequelize.authenticate();
       logger.info('SQLite initialized successfully');
+      await sequelize.close();
     }
+
+    logger.info('Setup complete.');
+    process.exit(0);
   } catch (error) {
-    logger.error('Database initialization failed:', error);
+    logger.error('Setup failed:', error);
     process.exit(1);
   }
 }
 
-async function validateConnections() {
-  if (DB_TYPE === 'sqlite') {
-    await sequelize.authenticate();
-  } else if (DB_TYPE === 'mongodb') {
-    await mongoose.connection.db.admin().ping();
-  }
-}
-
-// If this file is run directly, call setup
+// Run setup if executed directly
 if (require.main === module) {
   setup();
 }
 
-module.exports = { setup, validateConnections };
+module.exports = { setup };

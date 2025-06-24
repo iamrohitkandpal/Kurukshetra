@@ -4,15 +4,14 @@
   "description": "An intentionally vulnerable backend for cybersecurity training",
   "main": "server.js",
   "scripts": {
-    "start": "node utils/setup.js && node server.js",
+    "start": "node utils/setup.js && node utils/migrate.js && node server.js",
+    "setup": "node utils/setup.js",
+    "migrate": "node utils/migrate.js",
     "dev": "cross-env NODE_ENV=development nodemon server.js",
     "dev:sqlite": "cross-env NODE_ENV=development DB_TYPE=sqlite nodemon server.js",
     "dev:mongo": "cross-env NODE_ENV=development DB_TYPE=mongodb nodemon server.js",
-    "setup": "node utils/setup.js",
-    "migrate": "node utils/migrate.js",
     "prestart": "node scripts/ensure-uploads-dir.js",
     "db:reset": "node scripts/reset-db.js",
-
     "test": "jest",
     "test:watch": "jest --watch",
     "test:vulns": "cross-env NODE_ENV=test jest --testMatch='**/tests/*.test.js' --setupFiles='./tests/setup.js'",
