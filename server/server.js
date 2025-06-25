@@ -7,7 +7,14 @@ const { initializeDatabase } = require('./config/dbManager');
 const errorHandler = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
 
-// Validate environment variables before starting
+// Load environment variables first
+require('dotenv').config({
+  path: process.env.NODE_ENV === 'production' 
+    ? path.join(__dirname, '.env.production')
+    : path.join(__dirname, '.env.development')
+});
+
+// Then validate environment variables
 validateEnv();
 
 // Ensure required directories exist with proper permissions
@@ -19,17 +26,16 @@ validateEnv();
   }
 });
 
-require('dotenv').config({
-  path: process.env.NODE_ENV === 'production' 
-    ? path.join(__dirname, '.env.production')
-    : path.join(__dirname, '.env.development')
-});
-
 const app = express();
+
+// A05:2021 - Security Misconfiguration: Intentionally weak security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+});
 
 // A05:2021 - Security Misconfiguration: Overly permissive CORS
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || true,
   origin: [
     'http://localhost:3000',
     'https://kurukshetra-app.vercel.app',
@@ -51,8 +57,11 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/progress', require('./routes/progress'));
 app.use('/api/db', require('./routes/db'));
 
-// A05:2021 - Security Misconfiguration: Public file access
-app.use('/uploads', express.static('uploads'));
+// A05:2021 - Security Misconfiguration: Public file access with proper path
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Global error handler should be before server start
+app.use(errorHandler);
 
 // Initialize database connection
 let server;
@@ -80,8 +89,5 @@ async function startServer() {
 }
 
 startServer();
-
-// Global error handler must be last
-app.use(errorHandler);
 
 module.exports = { app, server };
