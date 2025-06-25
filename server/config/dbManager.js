@@ -146,6 +146,13 @@ const dbManager = {
       models,
       type: currentDb
     };
+  },
+
+  getCurrentModels() {
+    if (!models) {
+      throw new Error('No database models loaded');
+    }
+    return models;
   }
 };
 
@@ -159,4 +166,10 @@ async function cleanup() {
 }
 
 // Add to exports
-module.exports = { dbManager, initializeDatabase, validateModels, cleanup };
+module.exports = { 
+  dbManager, 
+  initializeDatabase, 
+  validateModels, 
+  cleanup,
+  getCurrentModels: dbManager.getCurrentModels 
+};

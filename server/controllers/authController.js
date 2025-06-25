@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { User } = require('../models');
+const dbManager = require('../config/dbManager');
 const { signToken } = require('../config/jwt');
 
 // A07:2021 - Authentication Failures: Weak password hashing
@@ -17,8 +17,9 @@ const authController = {
   async register(req, res) {
     try {
       const { username, email, password } = req.body;
+      const models = dbManager.getCurrentModels();
       
-      const user = await User.create({
+      const user = await models.User.create({
         username,
         email,
         password: hashPassword(password)
@@ -39,8 +40,9 @@ const authController = {
   async login(req, res) {
     try {
       const { username, password } = req.body;
+      const models = dbManager.getCurrentModels();
 
-      const user = await User.findOne({ username });
+      const user = await models.User.findOne({ username });
       
       if (!user || user.password !== hashPassword(password)) {
         return res.status(401).json({ error: 'Invalid credentials' });
@@ -65,7 +67,8 @@ const authController = {
   async resetPassword(req, res) {
     try {
       const { email } = req.body;
-      const user = await User.findOne({ email });
+      const models = dbManager.getCurrentModels();
+      const user = await models.User.findOne({ email });
 
       if (!user) {
         // A07:2021 - Authentication Failures: Username enumeration
@@ -90,9 +93,8 @@ const authController = {
   async confirmReset(req, res) {
     try {
       const { token, newPassword } = req.body;
-      
-      // A07:2021 - Authentication Failures: No token expiration check
-      const user = await User.findOne({ resetToken: token });
+      const { models } = dbManager.getConnection();
+      const user = await models.User.findOne({ resetToken: token });
 
       if (!user) {
         return res.status(400).json({ error: 'Invalid reset token' });

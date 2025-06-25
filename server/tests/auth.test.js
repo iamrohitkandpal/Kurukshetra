@@ -1,12 +1,13 @@
 const request = require('supertest');
 const app = require('../server');
-const { User } = require('../models');
+const dbManager = require('../config/dbManager');
 
 describe('Authentication Vulnerabilities', () => {
   let token;
 
   beforeAll(async () => {
-    await User.create({
+    const models = dbManager.getCurrentModels();
+    await models.User.create({
       username: 'testuser',
       password: 'password123',
       email: 'test@test.com'

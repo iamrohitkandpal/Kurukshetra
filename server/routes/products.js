@@ -6,7 +6,7 @@ const dbManager = require('../config/dbManager');
 // A03:2021 - Injection: Vulnerable product listing with no input sanitization
 router.get('/', async (req, res) => {
   try {
-    const db = dbManager.getConnection();
+    const models = dbManager.getCurrentModels();
     const { search, category } = req.query;
     
     // Allow DB override via query param
@@ -22,10 +22,9 @@ router.get('/', async (req, res) => {
       const products = await db.query(query, { type: db.QueryTypes.SELECT });
       return res.json(products);
     } else {
-      // Intentionally vulnerable to NoSQL injection
       const filter = search ? { $where: `this.name.includes("${search}")` } : {};
       if (category) filter.category = category;
-      const products = await db.models.Product.find(filter);
+      const products = await models.Product.find(filter);
       return res.json(products);
     }
   } catch (error) {
