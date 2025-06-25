@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const dbManager = require('../config/dbManager');
-const logger = require('../config/logger'); // Assuming you have a logger configuration
+const logger = require('../utils/logger');  
 
 // Add logging middleware
 const logFeedback = async (req, res, next) => {
