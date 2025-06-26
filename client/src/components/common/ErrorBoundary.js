@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+// Change to named export
 export class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
 
@@ -36,3 +37,6 @@ export class ErrorBoundary extends React.Component {
 ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired
 };
+
+// Change to named export
+export { ErrorBoundary };
