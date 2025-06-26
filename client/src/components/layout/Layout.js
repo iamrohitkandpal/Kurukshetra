@@ -1,10 +1,9 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import Navbar from './Navbar';
+import { useState, useEffect } from 'react';
+import ErrorBoundary from '../common/ErrorBoundary';
 import Sidebar from './Sidebar';
+import Navbar from './Navbar';
 import DatabaseBanner from '../common/DatabaseBanner';
-import DatabaseSelector from '../common/DatabaseSelector';
-import { ErrorBoundary } from '../common/ErrorBoundary';
+import useMediaQuery from '../../hooks/useMediaQuery';
 
 const ErrorFallback = ({ error, componentName }) => (
   <div className="alert alert-danger m-3">
@@ -19,31 +18,32 @@ const ErrorFallback = ({ error, componentName }) => (
   </div>
 );
 
+
 const Layout = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
+  useEffect(() => {
+    // Auto-close sidebar on mobile, keep open on desktop
+    setIsSidebarOpen(!isMobile);
+  }, [isMobile]);
+
   return (
     <div className="app-wrapper theme-dark">
       <ErrorBoundary fallback={<ErrorFallback componentName="Sidebar" />}>
-        <Sidebar />
+        <Sidebar className={isSidebarOpen ? 'open' : ''} />
       </ErrorBoundary>
       <div className="main-container">
-        <ErrorBoundary fallback={<ErrorFallback componentName="Navbar" />}>
-          <Navbar />
-        </ErrorBoundary>
-        <ErrorBoundary fallback={<ErrorFallback componentName="DatabaseBanner" />}>
-          <DatabaseBanner />
-        </ErrorBoundary>
+        <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <DatabaseBanner />
         <div className="content-wrapper">
-          <ErrorBoundary fallback={<ErrorFallback componentName="Content" />}>
+          <ErrorBoundary>
             {children}
           </ErrorBoundary>
         </div>
       </div>
     </div>
   );
-};
-
-Layout.propTypes = {
-  children: PropTypes.node.isRequired
 };
 
 export default Layout;

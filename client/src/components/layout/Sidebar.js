@@ -1,52 +1,80 @@
 import React, { useContext } from 'react';
+import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 
-const Sidebar = () => {
+const Sidebar = ({ className }) => {
   const { user } = useContext(AuthContext);
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
 
   const menuItems = [
-    { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { path: '/products', icon: '🔍', label: 'Products' },
-    { path: '/profile', icon: '👤', label: 'Profile' },
-    { path: '/feedback', icon: '📝', label: 'Feedback' },
+    { path: '/dashboard', icon: '📊', label: 'Dashboard', ariaLabel: 'Go to Dashboard' },
+    { path: '/products', icon: '🔍', label: 'Products', ariaLabel: 'Browse Products' },
+    { path: '/profile', icon: '👤', label: 'Profile', ariaLabel: 'View Profile' },
+    { path: '/feedback', icon: '📝', label: 'Feedback', ariaLabel: 'Submit Feedback' },
   ];
 
   if (user?.role === 'admin') {
-    menuItems.push({ path: '/admin', icon: '⚙️', label: 'Admin' });
+    menuItems.push({ 
+      path: '/admin', 
+      icon: '⚙️', 
+      label: 'Admin', 
+      ariaLabel: 'Admin Panel' 
+    });
   }
 
   return (
-    <div className="sidebar glass-bg">
-      <div className="sidebar-header">
-        <span className="logo-text">KS</span>
-        <h5 className="gradient-text mb-0">Kurukshetra</h5>
+    <aside
+      className={`sidebar glass-bg ${className}`}
+      role="navigation"
+      aria-label="Main navigation"
+      aria-hidden={className !== 'open'}
+    >
+      <div className="sidebar-header" role="banner">
+        <span className="logo-text" aria-hidden="true">KS</span>
+        <h1 className="gradient-text mb-0 h5">Kurukshetra</h1>
       </div>
 
-      <div className="sidebar-menu">
-        {menuItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`sidebar-item ${isActive(item.path) ? 'active' : ''}`}
-          >
-            <span className="sidebar-icon">{item.icon}</span>
-            <span className="sidebar-label">{item.label}</span>
-          </Link>
-        ))}
-      </div>
+      <nav className="sidebar-menu">
+        <ul className="list-unstyled mb-0" role="menu">
+          {menuItems.map((item) => (
+            <li key={item.path} role="none">
+              <Link
+                to={item.path}
+                className={`sidebar-item ${isActive(item.path) ? 'active' : ''}`}
+                role="menuitem"
+                aria-current={isActive(item.path) ? 'page' : undefined}
+                aria-label={item.ariaLabel}
+              >
+                <span className="sidebar-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span className="sidebar-label">{item.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-      <div className="sidebar-footer">
+      <div className="sidebar-footer" role="complementary">
         <div className="security-level">
-          <span className="security-indicator">🔐</span>
+          <span className="security-indicator" aria-hidden="true">🔐</span>
+          <span className="visually-hidden">Current security level:</span>
           <small>Security Level: High Risk</small>
         </div>
       </div>
-    </div>
+    </aside>
   );
+};
+
+Sidebar.propTypes = {
+  className: PropTypes.string
+};
+
+Sidebar.defaultProps = {
+  className: ''
 };
 
 export default Sidebar;

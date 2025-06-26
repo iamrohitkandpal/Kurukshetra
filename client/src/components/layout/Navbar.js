@@ -1,11 +1,14 @@
 import React, { useContext, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
+import useMediaQuery from '../../hooks/useMediaQuery';
 import { isAdmin, getRoleBadgeColor, getRoleIcon } from '../../utils/authUtils';
 
-const Navbar = () => {
+const Navbar = ({ onToggleSidebar }) => {
   const { user, logout } = useContext(AuthContext);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -20,20 +23,29 @@ const Navbar = () => {
     <>
       <nav className="navbar navbar-expand-lg navbar-glass">
         <div className="container">
+          {isMobile && (
+            <button
+              className="btn btn-link text-light d-lg-none me-3"
+              onClick={onToggleSidebar}
+              aria-label="Toggle sidebar navigation"
+            >
+              <span className="navbar-toggler-icon"></span>
+            </button>
+          )}
           <Link className="navbar-brand gradient-text d-flex align-items-center" to="/">
             <span className="logo-text me-2">KS</span>
             <span className="font-mono">Kurukshetra</span>
           </Link>
           <button
-            className="navbar-toggler"
+            className="navbar-toggler ms-auto"
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarNav"
             aria-controls="navbarNav"
             aria-expanded="false"
-            aria-label="Toggle navigation"
+            aria-label="Toggle navigation menu"
           >
-            <span className="navbar-toggler-icon" />
+            <span className="navbar-toggler-icon"></span>
           </button>
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto align-items-center">
@@ -135,6 +147,10 @@ const Navbar = () => {
       )}
     </>
   );
+};
+
+Navbar.propTypes = {
+  onToggleSidebar: PropTypes.func.isRequired
 };
 
 export default Navbar;
