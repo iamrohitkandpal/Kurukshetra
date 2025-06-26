@@ -6,6 +6,7 @@ const { validateEnv } = require('./utils/envValidator');
 const { initializeDatabase } = require('./config/dbManager');
 const { errorHandler } = require('./middleware/errorHandler'); // Destructure errorHandler
 const logger = require('./utils/logger');
+const PORT = process.env.PORT || 5000;
 
 // Load environment variables
 require('dotenv').config({
@@ -74,10 +75,15 @@ if (typeof errorHandler !== 'function') {
 // Global error handler
 app.use(errorHandler);
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+try {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log('✅ Server initialized — waiting for incoming requests');
+  });
+} catch (error) {
+  console.error('Failed to start server:', error);
+  // Log but don't exit - let the process manager handle restarts
+  logger.error('Server initialization failed:', error);
+}
 
 module.exports = app;
