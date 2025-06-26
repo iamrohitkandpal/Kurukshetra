@@ -4,20 +4,25 @@ const path = require('path');
 const fs = require('fs');
 const { validateEnv } = require('./utils/envValidator');
 const { initializeDatabase } = require('./config/dbManager');
-const errorHandler = require('./middleware/errorHandler');
+const { errorHandler } = require('./middleware/errorHandler'); // Destructure errorHandler
 const logger = require('./utils/logger');
 
-// Load environment variables first
+// Load environment variables
 require('dotenv').config({
-  path: process.env.NODE_ENV === 'production' 
+  path: process.env.NODE_ENV === 'production'
     ? path.join(__dirname, '.env.production')
     : path.join(__dirname, '.env.development')
 });
 
-// Then validate environment variables
-validateEnv();
+// Validate environment variables
+try {
+  validateEnv();
+} catch (error) {
+  console.error('Environment validation failed:', error.message);
+  process.exit(1);
+}
 
-// Ensure required directories exist with proper permissions
+// Ensure directories exist
 ['uploads', 'logs'].forEach(dir => {
   const dirPath = path.join(__dirname, dir);
   if (!fs.existsSync(dirPath)) {
@@ -28,13 +33,13 @@ validateEnv();
 
 const app = express();
 
-// A05:2021 - Security Misconfiguration: Intentionally weak security headers
+// Security headers
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   next();
 });
 
-// A05:2021 - Security Misconfiguration: Overly permissive CORS
+// CORS configuration
 app.use(cors({
   origin: [
     'http://localhost:3000',
@@ -57,13 +62,19 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/progress', require('./routes/progress'));
 app.use('/api/db', require('./routes/db'));
 
-// A05:2021 - Security Misconfiguration: Public file access with proper path
+// Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Global error handler should be before server start
+// Validate errorHandler
+if (typeof errorHandler !== 'function') {
+  console.error('Error: errorHandler is not a valid middleware function');
+  process.exit(1);
+}
+
+// Global error handler
 app.use(errorHandler);
 
-// Initialize database connection
+// Start server
 let server;
 async function startServer() {
   try {
@@ -73,7 +84,6 @@ async function startServer() {
       logger.info(`Server running on port ${port} in ${process.env.NODE_ENV} mode`);
     });
 
-    // Graceful shutdown
     process.on('SIGTERM', () => {
       logger.info('SIGTERM signal received. Shutting down gracefully.');
       server.close(() => {
@@ -81,7 +91,6 @@ async function startServer() {
         process.exit(0);
       });
     });
-
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
