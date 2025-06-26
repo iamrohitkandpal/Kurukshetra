@@ -8,12 +8,12 @@ const { Sequelize } = require('sequelize');
 // Load environment variables
 dotenv.config();
 const { DB_TYPE, MONGODB_URI } = process.env;
-let sequelize;
 
 async function setup() {
+  console.log('=== Starting Setup Script ===');
   try {
     // Create required directories
-    const dirs = ['logs', 'data'];
+    const dirs = ['logs', 'data', 'uploads'];
     for (const dir of dirs) {
       const dirPath = path.join(__dirname, '..', dir);
       if (!fs.existsSync(dirPath)) {
@@ -32,7 +32,7 @@ async function setup() {
       await mongoose.disconnect();
     } else {
       logger.info('Initializing SQLite...');
-      sequelize = new Sequelize({
+      const sequelize = new Sequelize({
         dialect: 'sqlite',
         storage: path.join(__dirname, '../data/kurukshetra.sqlite'),
       });
@@ -41,17 +41,21 @@ async function setup() {
       await sequelize.close();
     }
 
-    logger.info('Setup complete.');
+    console.log('=== Setup Complete ===');
     process.exit(0);
   } catch (error) {
+    console.error('=== Setup Failed ===');
     logger.error('Setup failed:', error);
     process.exit(1);
   }
 }
 
-// Run setup if executed directly
-if (require.main === module) {
-  setup();
-}
-
-module.exports = { setup };
+// Self-executing async function
+(async () => {
+  try {
+    await setup();
+  } catch (error) {
+    console.error('Setup execution failed:', error);
+    process.exit(1);
+  }
+})();

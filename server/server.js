@@ -75,28 +75,9 @@ if (typeof errorHandler !== 'function') {
 app.use(errorHandler);
 
 // Start server
-let server;
-async function startServer() {
-  try {
-    await initializeDatabase();
-    const port = process.env.PORT || 5000;
-    server = app.listen(port, () => {
-      logger.info(`Server running on port ${port} in ${process.env.NODE_ENV} mode`);
-    });
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM signal received. Shutting down gracefully.');
-      server.close(() => {
-        logger.info('Server closed. Process terminated.');
-        process.exit(0);
-      });
-    });
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
-}
-
-startServer();
-
-module.exports = { app, server };
+module.exports = app;
