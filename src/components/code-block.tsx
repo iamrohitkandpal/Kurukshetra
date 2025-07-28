@@ -74,8 +74,8 @@ export const CodeBlock = ({
       .replace(/\b(SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|UNION|OR|AND|LIKE)\b/g, '<span class="text-blue-400 font-semibold">$1</span>')
       // Dangerous patterns
       .replace(/('\s*OR\s*'1'\s*=\s*'1|'\s*\|\||--|\/\*|\*\/)/gi, '<span class="bg-red-500/20 text-red-300 px-1 rounded">$1</span>')
-      // Flags
-      .replace(/(FLAG\{[^}]+\})/g, '<span class="bg-yellow-500/20 text-yellow-300 px-1 rounded font-bold animate-pulse">$1</span>');
+      // Comments for flags (security - don't show actual flags in code)
+      .replace(/(FLAG\{[^}]+\})/g, '<span class="bg-gray-600/20 text-gray-400 px-1 rounded font-mono">[REDACTED_FLAG]</span>');
   };
 
   return (
