@@ -4,61 +4,128 @@
  * Automatically populates the database with realistic testing data for OWASP Top 10 vulnerabilities
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
-const { initializeDatabase, getDatabase } = require('../src/lib/db');
+require("dotenv").config({ path: path.join(process.cwd(), ".env.local") });
+
 let db;
 let isMongoDb = false;
+let mongoose;
+let UserModel;
+
+async function initializeDatabase() {
+  const DB_TYPE = process.env.DB_TYPE || "sqlite";
+  isMongoDb = DB_TYPE === "mongo";
+
+  if (isMongoDb) {
+    mongoose = require("mongoose");
+    // FIXED: Changed 'mongori' to 'mongoUri'
+    const mongoUri =
+      process.env.MONGODB_URI || "mongodb://localhost:27017/kurukshetra";
+
+    try {
+      await mongoose.connect(mongoUri);
+      console.log("📊 Connected to MongoDB");
+
+      const userSchema = new mongoose.Schema({
+        username: { type: String, required: true, unique: true },
+        email: { type: String, required: true, unique: true },
+        password: { type: String, required: true },
+        role: { type: String, default: "user" },
+        flagsFound: { type: [String], default: [] },
+        isActive: { type: Boolean, default: true },
+        profile: { type: Object, default: {} },
+      });
+
+      UserModel = mongoose.models.User || mongoose.model("User", userSchema);
+    } catch (error) {
+      console.error("❌ Error connecting to MongoDB:", error.message);
+      throw error;
+    }
+  } else {
+    const sqlite3 = require("sqlite3");
+    const { open } = require("sqlite");
+
+    try {
+      const dbPath =
+        process.env.NODE_ENV === "production"
+          ? path.join(process.cwd(), "kurukshetra.db")
+          : ":memory:";
+      db = await open({
+        filename: dbPath,
+        driver: sqlite3.Database,
+      });
+      console.log("📊 Connected to SQLite");
+
+      await db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          role TEXT DEFAULT 'user',
+          flagsFound TEXT DEFAULT '[]',
+          isActive BOOLEAN DEFAULT 1,
+          profile TEXT DEFAULT '{}',
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    } catch (error) {
+      console.error("❌ Error connecting to SQLite:", error.message);
+      throw error;
+    }
+  }
+}
 
 async function getUserCount() {
-  const database = await getDatabase();
-  if (database.type === 'mongo') {
-    return await database.UserModel.countDocuments();
+  if (isMongoDb) {
+    return await UserModel.countDocuments();
   } else {
-    const result = await database.instance.get('SELECT COUNT(*) as count FROM users');
+    const result = await db.get("SELECT COUNT(*) as count FROM users");
     return result.count;
   }
 }
 
 async function createUser(userData) {
-  const id = crypto.randomBytes(16).toString('hex');
-  const database = await getDatabase();
-  
-  if (database.type === 'mongo') {
-    const user = new database.UserModel({
+  const id = crypto.randomBytes(16).toString("hex");
+
+  if (isMongoDb) {
+    const user = new UserModel({
       ...userData,
-      _id: id
+      flagsFound: userData.flagsFound || [],
+      profile: userData.profile || {},
     });
     await user.save();
     return user;
   } else {
-    await database.instance.run(`
-      INSERT INTO users (id, username, email, password, flagsFound, role, createdAt, isActive, profile) 
+    await db.run(
+      `
+      INSERT INTO users (id, username, email, password, role, flagsFound, isActive, profile, createdAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id,
-      userData.username,
-      userData.email,
-      userData.password,
-      JSON.stringify(userData.flagsFound || []),
-      userData.role || 'user',
-      new Date().toISOString(),
-      userData.isActive !== false ? 1 : 0,
-      JSON.stringify(userData.profile || {})
-    ]);
+    `,
+      [
+        id,
+        userData.username,
+        userData.email,
+        userData.password,
+        userData.role || "user",
+        JSON.stringify(userData.flagsFound || []),
+        userData.isActive !== false ? 1 : 0,
+        JSON.stringify(userData.profile || {}),
+        new Date().toISOString(),
+      ]
+    );
     return { id, ...userData };
   }
 }
 
-// Comprehensive test data for OWASP Top 10 vulnerabilities
 const testUsers = [
-  // Admin users for access control testing
   {
     username: 'admin',
     email: 'admin@kurukshetra.dev',
-    password: 'FLAG{P4ssw0rd_1n_Pl41nt3xt!}', // A07: Auth failures - plaintext password
+    password: 'FLAG{P4ssw0rd_1n_Pl41nt3xt!}',
     role: 'admin',
     flagsFound: [],
     profile: { department: 'Security', clearanceLevel: 'TOP_SECRET' }
@@ -71,8 +138,6 @@ const testUsers = [
     flagsFound: ['insecure-auth', 'access-control-flaws'],
     profile: { department: 'IT', clearanceLevel: 'ULTRA_SECRET' }
   },
-  
-  // Regular users for horizontal privilege escalation testing
   {
     username: 'alice_cooper',
     email: 'alice@example.com',
@@ -92,165 +157,12 @@ const testUsers = [
   {
     username: 'charlie_brown',
     email: 'charlie@example.com',
-    password: 'admin', // Common weak password
+    password: 'admin',
     role: 'user',
     flagsFound: [],
     profile: { department: 'Finance', clearanceLevel: 'RESTRICTED', ssn: '555-12-3456' }
   },
-  
-  // Users for credential stuffing and enumeration attacks
-  {
-    username: 'david_miller',
-    email: 'david@company.com',
-    password: '12345678',
-    role: 'user',
-    flagsFound: ['misconfiguration'],
-    profile: { department: 'HR', clearanceLevel: 'INTERNAL' }
-  },
-  {
-    username: 'eve_davis',
-    email: 'eve@company.com',
-    password: 'password',
-    role: 'user',
-    flagsFound: ['vulnerable-dependencies'],
-    profile: { department: 'Legal', clearanceLevel: 'CONFIDENTIAL' }
-  },
-  {
-    username: 'frank_johnson',
-    email: 'frank@enterprise.org',
-    password: 'frank123',
-    role: 'user',
-    flagsFound: ['ssrf'],
-    profile: { department: 'Operations', clearanceLevel: 'SECRET' }
-  },
-  
-  // Test accounts with various patterns for injection testing
-  {
-    username: 'grace_hopper',
-    email: 'grace@legacy.mil',
-    password: 'legacy_system_2023',
-    role: 'user',
-    flagsFound: ['insecure-design'],
-    profile: { department: 'R&D', clearanceLevel: 'TOP_SECRET' }
-  },
-  {
-    username: 'henry_ford',
-    email: 'henry@automotive.com',
-    password: 'Model-T-1908',
-    role: 'user',
-    flagsFound: ['data-integrity-failures'],
-    profile: { department: 'Manufacturing', clearanceLevel: 'PROPRIETARY' }
-  },
-  
-  // Accounts for session management testing
-  {
-    username: 'iris_watson',
-    email: 'iris@clinic.health',
-    password: 'medical_records_secure',
-    role: 'user',
-    flagsFound: ['logging-failures'],
-    profile: { department: 'Healthcare', clearanceLevel: 'HIPAA_PROTECTED' }
-  },
-  {
-    username: 'jack_sparrow',
-    email: 'jack@pirates.ship',
-    password: 'blackpearl',
-    role: 'user',
-    flagsFound: [],
-    profile: { department: 'Maritime', clearanceLevel: 'PIRATE' }
-  },
-  
-  // Service accounts and API users
-  {
-    username: 'service_account',
-    email: 'service@kurukshetra.dev', // Match demo credentials
-    password: 'Service@2024!', // Match demo credentials
-    role: 'service',
-    flagsFound: [],
-    profile: { department: 'System', clearanceLevel: 'SYSTEM_INTERNAL' }
-  },
-  {
-    username: 'legacy_service',
-    email: 'service@internal.api',
-    password: 'service_key_12345',
-    role: 'service',
-    flagsFound: [],
-    profile: { department: 'Legacy', clearanceLevel: 'SYSTEM_INTERNAL' }
-  },
-  {
-    username: 'api_gateway',
-    email: 'gateway@api.internal',
-    password: 'gateway_secret_token',
-    role: 'api',
-    flagsFound: [],
-    profile: { department: 'Infrastructure', clearanceLevel: 'API_ACCESS' }
-  },
-  
-  // Test accounts with SQL injection friendly names
-  {
-    username: 'test_user_1',
-    email: 'test1@injection.test',
-    password: 'test123',
-    role: 'user',
-    flagsFound: [],
-    profile: { department: 'QA', clearanceLevel: 'TEST_ONLY' }
-  },
-  {
-    username: 'test_user_2',
-    email: 'test2@injection.test',
-    password: 'test456',
-    role: 'user',
-    flagsFound: [],
-    profile: { department: 'QA', clearanceLevel: 'TEST_ONLY' }
-  },
-  
-  // Accounts with interesting data for exfiltration
-  {
-    username: 'finance_manager',
-    email: 'finance@company.corp',
-    password: 'Q4_earnings_2023',
-    role: 'manager',
-    flagsFound: [],
-    profile: { 
-      department: 'Finance', 
-      clearanceLevel: 'FINANCIAL_DATA',
-      creditCard: '4532-1234-5678-9012',
-      bankAccount: 'ACC-789012345'
-    }
-  },
-  {
-    username: 'hr_director',
-    email: 'hr@company.corp',
-    password: 'employee_database',
-    role: 'manager',
-    flagsFound: [],
-    profile: { 
-      department: 'Human Resources', 
-      clearanceLevel: 'PII_ACCESS',
-      employeeCount: 1337,
-      salaryBudget: '$2,500,000'
-    }
-  },
-  
-  // Disabled/inactive accounts for testing
-  {
-    username: 'former_employee',
-    email: 'former@company.com',
-    password: 'should_be_disabled',
-    role: 'user',
-    isActive: false,
-    flagsFound: [],
-    profile: { department: 'TERMINATED', clearanceLevel: 'REVOKED' }
-  },
-  {
-    username: 'contractor_temp',
-    email: 'temp@contractor.external',
-    password: 'temp_access_2023',
-    role: 'contractor',
-    flagsFound: [],
-    profile: { department: 'External', clearanceLevel: 'LIMITED_ACCESS' }
-  }
-];
+]
 
 async function seedDatabase() {
   console.log('🌱 Starting Kurukshetra database seeding...\n');
