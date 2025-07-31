@@ -1,4 +1,3 @@
-````markdown
 # KURUKSHETRA TECHNICAL DOCUMENTATION ✨
 
 <br>
@@ -118,6 +117,80 @@ Kurukshetra features a modern full-stack architecture with intentional security 
 <br>
 
 ---
+
+## 4. API ENDPOINTS 🔗
+
+**Base URL**: `/api`
+
+### **Authentication Endpoints:**
+* `POST /api/login` - User authentication with timing vulnerabilities
+* `POST /api/register` - User registration with weak validation
+* `POST /api/logout` - Session termination with dual-database logging
+
+### **User Management:**
+* `GET /api/users/[id]` - User profile retrieval (**IDOR vulnerability**)
+* `GET /api/users/search` - User search with **SQL injection points**
+
+### **Admin Endpoints (Broken Access Control):**
+* `GET /api/admin/settings` - Admin settings (weak authorization)
+* `POST /api/admin/update-settings` - Settings modification
+* `GET /api/admin/secure-settings` - Properly secured admin endpoint (contrast)
+
+### **Tenant/Multi-tenancy (IDOR Demonstration):**
+* `GET /api/tenants/[id]/data` - Tenant data access (**insecure direct object reference**)
+
+### **Vulnerability Demonstration:**
+* `POST /api/flags/submit` - CTF flag submission system
+* `GET /api/ssrf/fetch` - **Server-side request forgery** endpoint
+* `POST /api/profile/update` - Profile update (**second-order SQLi**)
+* `GET /api/profile/lookup` - Profile lookup triggering stored payloads
+
+### **Business Logic Flaws:**
+* `POST /api/registration/step1` - Multi-step registration (step bypass)
+* `POST /api/registration/step2` - Profile information step
+* `POST /api/registration/step3` - Final step (**business logic bypass**)
+* `POST /api/purchase/order` - Order processing (**price manipulation**)
+
+### **Database Management:**
+* `POST /api/database/switch` - Dynamic database switching
+* `GET /api/database/status` - Current database type
+
+<br>
+
+---
+
+## 5. AUTHENTICATION SYSTEM 🔑
+
+JWT-based authentication with intentional vulnerabilities:
+
+### **Vulnerability Features:**
+* Weak JWT secret (exposed in environment variables)
+* Low bcrypt rounds (3 instead of 12+) for password hashing
+* Timing attack vulnerabilities in login endpoint
+* Plaintext password storage alongside hashed versions
+* Client-side token storage in `localStorage`
+* Missing server-side authorization checks
+
+### **Authentication Flow:**
+1.  User submits credentials via `/api/login`
+2.  Server validates against dual-database system
+3.  JWT token generated with weak secret
+4.  Token returned to client (stored in `localStorage`)
+5.  Subsequent requests include Bearer token
+6.  Server validates token but with bypassable checks
+
+### **Token Structure:**
+```json
+{
+  "id": "string",
+  "email": "string",
+  "username": "string",
+  "role": "string",
+  "iat": "number",
+  "iss": "kurukshetra-training",
+  "exp": "number (1 hour)"
+}
+```
 
 ## 4. API ENDPOINTS 🔗
 
