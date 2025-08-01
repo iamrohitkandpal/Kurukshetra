@@ -23,7 +23,7 @@ export default function AboutPage() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <Button asChild variant="ghost" className="mb-8">
             <Link href="/">
               <ArrowLeft className="mr-2 h-4 w-4" />
