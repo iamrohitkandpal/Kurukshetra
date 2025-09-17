@@ -83,7 +83,7 @@ export default function Home() {
                 <p className="text-2xl md:text-3xl font-semibold text-muted-foreground mb-4">
                   Professional OWASP Top 10 Security Training
                 </p>
-                <p className="text-lg text-muted-foreground max-w-4xl mx-auto mb-8">
+                <p className="text-lg text-muted-foreground max-w-6xl mx-auto mb-8">
                   Master ethical hacking with our comprehensive vulnerability testing environment. 
                   Practice penetration testing on intentionally vulnerable applications covering all OWASP Top 10 security risks.
                 </p>
